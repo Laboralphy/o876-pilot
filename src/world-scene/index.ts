@@ -2,62 +2,109 @@ import Phaser from 'phaser';
 import { TILES } from '../data/tiles-space';
 import { buildTileset } from '../draw-tiles';
 import { MyWordGenerator } from '../world-generator/MyWorldGenerator';
+import { TileDefinition } from '../world-generator/tile-definition';
+
+export type WorldSceneOptions = {
+    key: string;
+    game: Phaser.Game;
+    tileSize: number;
+    worldWidth: number;
+    worldHeight: number;
+    tiles: TileDefinition[];
+};
 
 class WorldScene extends Phaser.Scene {
-    worldGenerator: MyWordGenerator;
-    map: Phaser.Tilemaps.Tilemap;
+    private readonly worldGenerator: MyWordGenerator;
+    private _map: Phaser.Tilemaps.Tilemap | null = null;
+    private layer: Phaser.Tilemaps.TilemapLayer | null = null;
+    private readonly textures: Phaser.Textures.TextureManager;
+    private readonly game: Phaser.Game;
+    private readonly tileSize: number;
+    private readonly worldWidth: number;
+    private readonly worldHeight: number;
+    private readonly tiles: TileDefinition[];
 
-    constructor() {
-        super({ key: 'WorldScene' });
-        this.worldGenerator = new MyWordGenerator(TILES, 200, 200);
+    constructor(options: WorldSceneOptions) {
+        super({ key: options.key });
+        this.game = options.game;
+        this.tileSize = options.tileSize;
+        this.worldWidth = options.worldWidth;
+        this.worldHeight = options.worldHeight;
+        this.tiles = options.tiles;
+        this.worldGenerator = new MyWordGenerator(this.tiles, this.worldWidth, this.worldHeight);
+        this.textures = new Phaser.Textures.TextureManager(this.game);
+    }
+
+    get map(): Phaser.Tilemaps.Tilemap {
+        if (!this._map) {
+            throw new Error('Map not loaded yet');
+        }
+        return this._map;
     }
 
     preload() {
-        const tilesetCanvas = buildTileset(TILES);
+        const tilesetCanvas = buildTileset(this.tiles);
         this.textures.addCanvas('tileset', tilesetCanvas);
         this.worldGenerator.generateMapData();
     }
 
-    _buildTilemap() {
-        // Destruction propre si régénération
-        if (this.map) this.map.destroy();
+    private _destroyTilemap() {
+        if (this._map) {
+            this._map.destroy();
+            this._map = null;
+        }
+    }
 
-        // 1. Création de la Tilemap depuis le tableau 2D
-        //    Phaser comprend que mapData[y][x] est l'index de tile
-        this.map = this.make.tilemap({
-            data: this.mapData,
-            tileWidth: TILE_SIZE,
-            tileHeight: TILE_SIZE,
+    _buildTilemap() {
+        this._destroyTilemap();
+        // 1. [y][x] to access tile x, y
+        this._map = this.make.tilemap({
+            data: this.worldGenerator.mapData,
+            tileWidth: this.tileSize,
+            tileHeight: this.tileSize,
         });
 
         // 2. Enregistrement du tileset atlas
         //    Paramètres : (nom logique, clé texture, largeur tile, hauteur tile)
         //    Phaser calcule automatiquement les UV de chaque tile :
         //    tile N → rect { x: N*64, y: 0, w: 64, h: 64 } dans la texture
-        const tileset = this.map.addTilesetImage(
-            'tileset', // nom logique (référencé dans les layers)
-            'tileset', // clé de la texture dans le cache Phaser
-            TILE_SIZE,
-            TILE_SIZE,
-            0, // margin (espace autour du tileset complet)
-            0 // spacing (espace entre chaque tile dans l'atlas)
+        this.map.addTilesetImage(
+            'tileset', // logical name, used by layers to render image
+            'tileset', // texture key in phaser cache
+            this.tileSize,
+            this.tileSize,
+            0, // tile margin
+            0 // tile spacing
         );
 
-        // 3. Création du StaticTilemapLayer
-        //    → rendu WebGL ultra-optimisé en UN SEUL draw call
-        //    → frustum culling automatique (seules les tiles visibles sont rendues)
-        //    → les données sont uploadées en VBO GPU une seule fois
-        this.layer = this.map.createLayer(
-            0, // index du layer dans la map (notre map n'en a qu'un)
-            tileset, // le tileset à utiliser
-            0, // position x dans le monde
-            0 // position y dans le monde
+        // 3. Creating  StaticTilemapLayer
+        //    → optimized WebGL rendering in one draw call
+        //    → auto frustum culling (only visible tiles are rendered)
+        //    → data uploaded in GPU at one time
+        const layer = this.map.createLayer(
+            0, // in map layer index
+            'tileset', // used tileset (referenced by logical name)
+            0, // in world x pos
+            0 // in world y pos
         );
+        if (!layer) {
+            throw new Error('Could not build tilemap layer');
+        }
+        this.layer = layer;
 
-        // 4. Définition des collisions (tiles solides)
-        //    Utile pour la physique du vaisseau plus tard
-        TILES.forEach((t) => {
-            if (t.solid) this.map.setCollision(t.id);
+        // 4. Setting collision tiles
+        this.tiles.forEach((t) => {
+            if (t.solid) {
+                this.map.setCollision(t.id);
+            }
         });
+    }
+
+    _setupCamera() {
+        this.cameras.main
+            .setBounds(0, 0, this.worldWidth * this.tileSize, this.worldHeight * this.tileSize)
+            .setBackgroundColor(0x07090f)
+            .centerOn((this.worldWidth * this.tileSize) / 2, (this.worldHeight * this.tileSize) / 2)
+            .setZoom(1);
     }
 }
