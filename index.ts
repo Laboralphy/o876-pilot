@@ -1,1 +1,1 @@
-// index.ts
+// WorldGeneratorAbstract.ts

@@ -1,19 +1,24 @@
-import { TileDefinition } from './tile-definition';
 import { WordGeneratorAbstract } from './WorldGeneratorAbstract';
 
-export class MyWordGenerator extends WordGeneratorAbstract<TileDefinition> {
+type T01Cell = {
+    id: number;
+    weight: number;
+    solid: boolean;
+};
+
+export class MyWordGenerator extends WordGeneratorAbstract<T01Cell> {
     private totalWeight: number = 0;
-    constructor(tileData: TileDefinition[], worldWidth: number, worldHeight: number) {
-        super(tileData, worldWidth, worldHeight);
-        this.totalWeight = tileData.reduce(
-            (totalWeight: number, tile: TileDefinition) => totalWeight + tile.weight,
+    constructor(cellData: T01Cell[], worldWidth: number, worldHeight: number) {
+        super(cellData, worldWidth, worldHeight);
+        this.totalWeight = cellData.reduce(
+            (totalWeight: number, cell: T01Cell) => totalWeight + cell.weight,
             0
         );
     }
 
     initMapDataCell(): number {
         let r = Math.random() * this.totalWeight;
-        for (const t of this.tileData.values()) {
+        for (const t of this.cellData.values()) {
             r -= t.weight;
             if (r <= 0) {
                 return t.id;

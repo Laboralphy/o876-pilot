@@ -1,8 +1,6 @@
 import Phaser from 'phaser';
-import { TILES } from '../data/tiles-space';
-import { buildTileset } from '../draw-tiles';
 import { MyWordGenerator } from '../world-generator/MyWorldGenerator';
-import { TileDefinition } from '../world-generator/tile-definition';
+import { TileDefinition } from '../tile-renderer/themes/astro/tile-definition';
 
 export type WorldSceneOptions = {
     key: string;
@@ -13,7 +11,7 @@ export type WorldSceneOptions = {
     tiles: TileDefinition[];
 };
 
-class WorldScene extends Phaser.Scene {
+export class WorldScene extends Phaser.Scene {
     private readonly worldGenerator: MyWordGenerator;
     private _map: Phaser.Tilemaps.Tilemap | null = null;
     private layer: Phaser.Tilemaps.TilemapLayer | null = null;

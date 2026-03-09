@@ -1,7 +1,9 @@
-import { TileDefinition } from '../world-generator/tile-definition';
-import { hexstr } from '../libs/hexstr';
+import { TileDefinition } from './tile-definition';
+import { hexstr } from '../../../libs/hexstr';
 
 export function drawNebula(ctx: CanvasRenderingContext2D, tile: TileDefinition, tileSize: number) {
+    ctx.fillStyle = hexstr(tile.color);
+    ctx.fillRect(0, 0, tileSize, tileSize);
     const g = ctx.createRadialGradient(
         tileSize / 2,
         tileSize / 2,

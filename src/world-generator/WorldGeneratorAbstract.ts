@@ -1,25 +1,21 @@
-type AbstractTileDefinition = {
+type CellDefinition = {
     id: number;
 };
 
 type NeighborCell = { dx: number; dy: number; value: number };
 
-export abstract class WordGeneratorAbstract<T extends AbstractTileDefinition> {
-    protected readonly tileData = new Map<number, T>();
-    protected _mapData: number[][] = [];
+export abstract class WordGeneratorAbstract<T extends CellDefinition> {
+    protected readonly cellData = new Map<number, T>();
+    protected readonly mapData: number[][] = [];
 
     protected constructor(
-        tileData: T[],
+        cellData: T[],
         private readonly worldWidth: number,
         private readonly worldHeight: number
     ) {
-        for (const tile of tileData) {
-            this.tileData.set(tile.id, tile);
+        for (const cell of cellData) {
+            this.cellData.set(cell.id, cell);
         }
-    }
-
-    get mapData(): number[][] {
-        return this._mapData;
     }
 
     abstract initMapDataCell(x: number, y: number): number;

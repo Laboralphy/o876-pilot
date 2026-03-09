@@ -1,58 +1,40 @@
-import { TileDefinition } from '../tile-renderer/themes/astro/tile-definition';
+import { TileDefinition } from './tile-definition';
 
 export const TILES: TileDefinition[] = [
     {
         id: 0,
-        name: 'Void',
         renderer: 'drawSpreadStars',
         color: 0x0d1b2e,
         accent: 0x1a3a5c,
-        weight: 40,
-        solid: false,
     },
     {
         id: 1,
-        name: 'Nebula',
         renderer: 'drawNebula',
         color: 0x1a3358,
         accent: 0x2d5a8e,
-        weight: 25,
-        solid: false,
     },
     {
         id: 2,
-        name: 'Asteroid',
         renderer: 'drawAsteroid',
         color: 0x2a4a35,
         accent: 0x4a7a5a,
-        weight: 18,
-        solid: true,
     },
     {
         id: 3,
-        name: 'Rock',
         renderer: 'drawCrackedBlock',
         color: 0x4a3218,
         accent: 0x8a5a2a,
-        weight: 10,
-        solid: true,
     },
     {
         id: 4,
-        name: 'Ore',
         renderer: 'drawGoldCrystal',
         color: 0x6a5010,
         accent: 0xc8a020,
-        weight: 5,
-        solid: true,
     },
     {
         id: 5,
-        name: 'Anomaly',
         renderer: 'drawSpaceAnomaly',
         color: 0x2a0a4a,
         accent: 0x5a1a8a,
-        weight: 2,
-        solid: false,
     },
 ];

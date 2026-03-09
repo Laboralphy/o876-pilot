@@ -1,11 +1,13 @@
-import { TileDefinition } from '../world-generator/tile-definition';
-import { hexstr } from '../libs/hexstr';
+import { TileDefinition } from './tile-definition';
+import { hexstr } from '../../../libs/hexstr';
 
 export function drawAsteroid(
     ctx: CanvasRenderingContext2D,
     tile: TileDefinition,
     tileSize: number
 ) {
+    ctx.fillStyle = hexstr(tile.color);
+    ctx.fillRect(0, 0, tileSize, tileSize);
     const cx = tileSize / 2,
         cy = tileSize / 2,
         baseR = tileSize * 0.33;
@@ -17,7 +19,11 @@ export function drawAsteroid(
         const r = baseR * (0.65 + Math.random() * 0.5);
         const px = cx + Math.cos(a) * r;
         const py = cy + Math.sin(a) * r;
-        i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+        if (i === 0) {
+            ctx.moveTo(px, py);
+        } else {
+            ctx.lineTo(px, py);
+        }
     }
     ctx.closePath();
     ctx.fill();

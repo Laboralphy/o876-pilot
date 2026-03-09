@@ -1,11 +1,13 @@
-import { TileDefinition } from '../world-generator/tile-definition';
-import { hexstr } from '../libs/hexstr';
+import { TileDefinition } from './tile-definition';
+import { hexstr } from '../../../libs/hexstr';
 
 export function drawGoldCrystal(
     ctx: CanvasRenderingContext2D,
     tile: TileDefinition,
     tileSize: number
 ) {
+    ctx.fillStyle = hexstr(tile.color);
+    ctx.fillRect(0, 0, tileSize, tileSize);
     ctx.fillStyle = hexstr(tile.accent) + '55';
     ctx.fillRect(4, 4, tileSize - 8, tileSize - 8);
     const golds = ['#ffd700cc', '#ffaa00cc', '#ffe066cc', '#fff0aacc'];
