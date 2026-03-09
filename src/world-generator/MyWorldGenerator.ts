@@ -18,6 +18,7 @@ export class MyWordGenerator extends WordGeneratorAbstract<T01Cell> {
 
     initMapDataCell(): number {
         let r = Math.random() * this.totalWeight;
+        // !!!
         for (const t of this.cellData.values()) {
             r -= t.weight;
             if (r <= 0) {
