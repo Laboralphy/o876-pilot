@@ -1,46 +1,33 @@
-import { ITileRenderer } from './ITileRenderer';
-
-type TileDefRenderer = {
-    renderer: string;
-};
-
-type RendererFunction<T extends TileDefRenderer> = (
-    ctx: CanvasRenderingContext2D,
-    tile: T,
-    tileSize: number
-) => void;
-
-export class TileRenderer<T extends TileDefRenderer> implements ITileRenderer<T> {
+export abstract class TileRenderer<T> {
     private readonly tileData: T[];
     private readonly tileSize: number;
-    private readonly renderers: Record<string, RendererFunction<T>>;
-    constructor(tileData: T[], tileSize: number, renderers: Record<string, RendererFunction<T>>) {
+    protected constructor(tileData: T[], tileSize: number) {
         this.tileData = tileData;
         this.tileSize = tileSize;
-        this.renderers = renderers;
-        this.buildTileset(this.tileData, this.tileSize);
+        this.buildTileset();
     }
 
-    drawTile(ctx: CanvasRenderingContext2D, tile: T, ox: number, oy: number, tileSize: number) {
-        if (this.hasRenderer(tile.renderer)) {
-            ctx.save();
-            ctx.translate(ox, oy);
-            ctx.beginPath();
-            ctx.rect(0, 0, tileSize, tileSize);
-            ctx.clip();
-            this.renderers[tile.renderer](ctx, tile, tileSize);
-            ctx.strokeStyle = '#ffffff07';
-            ctx.lineWidth = 1;
-            ctx.strokeRect(0.5, 0.5, tileSize - 1, tileSize - 1);
-            ctx.restore();
-        }
+    abstract drawTile(ctx: CanvasRenderingContext2D, tile: T, tileSize: number): void;
+
+    private renderTile(
+        ctx: CanvasRenderingContext2D,
+        tile: T,
+        ox: number,
+        oy: number,
+        tileSize: number
+    ) {
+        ctx.save();
+        ctx.translate(ox, oy);
+        ctx.beginPath();
+        ctx.rect(0, 0, tileSize, tileSize);
+        ctx.clip();
+        this.drawTile(ctx, tile, tileSize);
+        ctx.restore();
     }
 
-    hasRenderer(renderer: string): boolean {
-        return renderer in this.renderers;
-    }
-
-    buildTileset(tiles: T[], tileSize: number): HTMLCanvasElement {
+    private buildTileset(): HTMLCanvasElement {
+        const tiles = this.tileData;
+        const tileSize = this.tileSize;
         const tileCount = tiles.length;
         const tilesetWidth = Math.ceil(Math.sqrt(tileCount));
         const canvas = document.createElement('canvas');
@@ -53,7 +40,7 @@ export class TileRenderer<T extends TileDefRenderer> implements ITileRenderer<T>
         let oy: number = 0;
         let ox: number = 0;
         tiles.forEach((tile) => {
-            this.drawTile(ctx, tile, ox, oy, tileSize);
+            this.renderTile(ctx, tile, ox, oy, tileSize);
             ox += tileSize;
             if (ox >= canvas.width) {
                 ox = 0;

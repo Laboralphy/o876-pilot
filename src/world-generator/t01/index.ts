@@ -1,24 +1,20 @@
-import { WordGeneratorAbstract } from './WorldGeneratorAbstract';
+import { WordGenerator } from '../WorldGenerator';
+import { CELLS } from './cells';
 
-type T01Cell = {
+export type T01Cell = {
     id: number;
     weight: number;
-    solid: boolean;
 };
 
-export class MyWordGenerator extends WordGeneratorAbstract<T01Cell> {
+export class T01WordGenerator extends WordGenerator {
     private totalWeight: number = 0;
-    constructor(cellData: T01Cell[], worldWidth: number, worldHeight: number) {
-        super(cellData, worldWidth, worldHeight);
-        this.totalWeight = cellData.reduce(
-            (totalWeight: number, cell: T01Cell) => totalWeight + cell.weight,
-            0
-        );
+    private cellData = new Map<number, T01Cell>();
+    constructor(worldWidth: number, worldHeight: number) {
+        super(worldWidth, worldHeight);
     }
 
     initMapDataCell(): number {
         let r = Math.random() * this.totalWeight;
-        // !!!
         for (const t of this.cellData.values()) {
             r -= t.weight;
             if (r <= 0) {
@@ -29,10 +25,18 @@ export class MyWordGenerator extends WordGeneratorAbstract<T01Cell> {
     }
 
     generateMapData() {
-        this.initMapData();
-        const raw = this._mapData;
+        CELLS.forEach((cell) => {
+            this.cellData.set(cell.id, cell);
+        });
+        this.totalWeight = CELLS.reduce(
+            (totalWeight: number, cell: T01Cell) => totalWeight + cell.weight,
+            0
+        );
+        this.walkMapData(() => this.initMapDataCell());
+        const raw = this.mapData;
 
-        this._mapData = raw.map((row, y) =>
+        this.mapData.splice(0, this.mapData.length);
+        raw.map((row, y) =>
             row.map((id, x) => {
                 if (Math.random() > 0.4) return id;
                 const neighbors = this.getNeighbors(x, y);
@@ -49,6 +53,8 @@ export class MyWordGenerator extends WordGeneratorAbstract<T01Cell> {
                 }
                 return best;
             })
-        );
+        ).forEach((row) => {
+            this.mapData.push(row);
+        });
     }
 }

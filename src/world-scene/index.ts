@@ -1,6 +1,4 @@
 import Phaser from 'phaser';
-import { MyWordGenerator } from '../world-generator/MyWorldGenerator';
-import { TileDefinition } from '../tile-renderer/themes/astro/tile-definition';
 
 export type WorldSceneOptions = {
     key: string;
@@ -8,11 +6,11 @@ export type WorldSceneOptions = {
     tileSize: number;
     worldWidth: number;
     worldHeight: number;
-    tiles: TileDefinition[];
+    cells:
 };
 
 export class WorldScene extends Phaser.Scene {
-    private readonly worldGenerator: MyWordGenerator;
+    private readonly worldGenerator: T01WordGenerator;
     private _map: Phaser.Tilemaps.Tilemap | null = null;
     private layer: Phaser.Tilemaps.TilemapLayer | null = null;
     private readonly textures: Phaser.Textures.TextureManager;
@@ -20,7 +18,6 @@ export class WorldScene extends Phaser.Scene {
     private readonly tileSize: number;
     private readonly worldWidth: number;
     private readonly worldHeight: number;
-    private readonly tiles: TileDefinition[];
 
     constructor(options: WorldSceneOptions) {
         super({ key: options.key });
@@ -28,8 +25,7 @@ export class WorldScene extends Phaser.Scene {
         this.tileSize = options.tileSize;
         this.worldWidth = options.worldWidth;
         this.worldHeight = options.worldHeight;
-        this.tiles = options.tiles;
-        this.worldGenerator = new MyWordGenerator(this.tiles, this.worldWidth, this.worldHeight);
+        this.worldGenerator = new T01WordGenerator(this.worldWidth, this.worldHeight);
         this.textures = new Phaser.Textures.TextureManager(this.game);
     }
 
