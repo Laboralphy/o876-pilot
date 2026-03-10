@@ -21,6 +21,20 @@ export abstract class WordGenerator {
         }
     }
 
+    setCellValue(x: number, y: number, value: number): void {
+        if (y < this.mapData.length && x < this.mapData[y].length) {
+            this.mapData[y][x] = value;
+        }
+    }
+
+    getCellValue(x: number, y: number): number {
+        if (y < this.mapData.length && x < this.mapData[y].length) {
+            return this.mapData[y][x];
+        } else {
+            return -1;
+        }
+    }
+
     getNeighbors(x: number, y: number): NeighborCell[] {
         const raw = this.mapData;
         const neighbors: NeighborCell[] = [];
@@ -36,10 +50,10 @@ export abstract class WordGenerator {
         return neighbors;
     }
 
-    walkMapData(walker: (x: number, y: number) => number) {
+    walkMapData(walker: (x: number, y: number, value: number) => number) {
         for (let y = 0; y < this.worldHeight; ++y) {
             for (let x = 0; x < this.worldWidth; ++x) {
-                walker(x, y);
+                this.setCellValue(x, y, walker(x, y, this.getCellValue(x, y)));
             }
         }
     }

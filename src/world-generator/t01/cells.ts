@@ -1,4 +1,4 @@
-import { T01Cell } from './index';
+import { T01Cell } from './T01WorldGenerator';
 
 export const CELLS: T01Cell[] = [
     {

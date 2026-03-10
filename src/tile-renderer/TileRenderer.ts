@@ -4,7 +4,6 @@ export abstract class TileRenderer<T> {
     protected constructor(tileData: T[], tileSize: number) {
         this.tileData = tileData;
         this.tileSize = tileSize;
-        this.buildTileset();
     }
 
     abstract drawTile(ctx: CanvasRenderingContext2D, tile: T, tileSize: number): void;
@@ -25,7 +24,7 @@ export abstract class TileRenderer<T> {
         ctx.restore();
     }
 
-    private buildTileset(): HTMLCanvasElement {
+    buildTileset(): HTMLCanvasElement {
         const tiles = this.tileData;
         const tileSize = this.tileSize;
         const tileCount = tiles.length;

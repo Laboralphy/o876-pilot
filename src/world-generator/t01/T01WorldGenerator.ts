@@ -6,14 +6,14 @@ export type T01Cell = {
     weight: number;
 };
 
-export class T01WordGenerator extends WordGenerator {
+export class T01WorldGenerator extends WordGenerator {
     private totalWeight: number = 0;
     private cellData = new Map<number, T01Cell>();
     constructor(worldWidth: number, worldHeight: number) {
         super(worldWidth, worldHeight);
     }
 
-    initMapDataCell(): number {
+    private initMapDataCell(): number {
         let r = Math.random() * this.totalWeight;
         for (const t of this.cellData.values()) {
             r -= t.weight;
@@ -56,5 +56,6 @@ export class T01WordGenerator extends WordGenerator {
         ).forEach((row) => {
             this.mapData.push(row);
         });
+        return this.mapData;
     }
 }

@@ -1,4 +1,21 @@
 import Phaser from 'phaser';
+import { T01WorldGenerator } from '../world-generator/t01/T01WorldGenerator';
+import { AstroTileRenderer } from '../tile-renderer/themes/astro';
+import { IWorldGenerator } from '../world-generator/IWorldGenerator';
+import { ITileRenderer } from '../tile-renderer/ITileRenderer';
+
+type AnyLayer =
+    | Phaser.GameObjects.Layer
+    | Phaser.Tilemaps.TilemapLayer
+    | Phaser.GameObjects.TileSprite;
+
+export type LayerDefinition = {
+    worldGenerator: IWorldGenerator;
+    tileRenderer: ITileRenderer;
+    tileSize: number;
+    worldWidth: number;
+    worldHeight: number;
+};
 
 export type WorldSceneOptions = {
     key: string;
@@ -6,13 +23,11 @@ export type WorldSceneOptions = {
     tileSize: number;
     worldWidth: number;
     worldHeight: number;
-    cells:
 };
 
 export class WorldScene extends Phaser.Scene {
-    private readonly worldGenerator: T01WordGenerator;
-    private _map: Phaser.Tilemaps.Tilemap | null = null;
-    private layer: Phaser.Tilemaps.TilemapLayer | null = null;
+    private readonly tilemaps = new Map<number, Phaser.Tilemaps.Tilemap>();
+    private readonly layers = new Map<number, AnyLayer>();
     private readonly textures: Phaser.Textures.TextureManager;
     private readonly game: Phaser.Game;
     private readonly tileSize: number;
@@ -25,34 +40,66 @@ export class WorldScene extends Phaser.Scene {
         this.tileSize = options.tileSize;
         this.worldWidth = options.worldWidth;
         this.worldHeight = options.worldHeight;
-        this.worldGenerator = new T01WordGenerator(this.worldWidth, this.worldHeight);
         this.textures = new Phaser.Textures.TextureManager(this.game);
     }
 
-    get map(): Phaser.Tilemaps.Tilemap {
-        if (!this._map) {
-            throw new Error('Map not loaded yet');
+    create() {}
+
+    private _buildLayer(n: number, wg: IWorldGenerator, tr: ITileRenderer, nScrollFactor: number) {
+        const mapData = wg.generateMapData();
+        const tilesetCanvas = tr.buildTileset();
+        this.textures.addCanvas('tileset-' + n, tilesetCanvas);
+        const tilemap = this.make.tilemap({
+            data: mapData,
+            tileWidth: this.tileSize,
+            tileHeight: this.tileSize,
+        });
+        tilemap.addTilesetImage(
+            'tileset-' + n, // logical name, used by layers to render image
+            'tileset-' + n, // texture key in phaser cache
+            this.tileSize,
+            this.tileSize,
+            0, // tile margin
+            0 // tile spacing
+        );
+        const layer = tilemap.createLayer(
+            0, // in map layer index
+            'tileset', // used tileset (referenced by logical name)
+            0, // in world x pos
+            0 // in world y pos
+        );
+        if (!layer) {
+            throw new Error('Could not build tilemap layer');
         }
-        return this._map;
+        this._destroyTilemap(n);
+        this.tilemaps.set(n, tilemap);
+        layer.setScrollFactor(nScrollFactor);
+        this.layers.set(n, layer);
     }
 
+    /**
+     * Preloading Scene:
+     * 1) building textures
+     * 2) generating world
+     */
     preload() {
-        const tilesetCanvas = buildTileset(this.tiles);
+        const tilesetCanvas = this.tileRenderer.buildTileset();
         this.textures.addCanvas('tileset', tilesetCanvas);
-        this.worldGenerator.generateMapData();
+        this.mapData = this.worldGenerator.generateMapData();
     }
 
-    private _destroyTilemap() {
-        if (this._map) {
-            this._map.destroy();
-            this._map = null;
+    private _destroyTilemap(n: number) {
+        const tm = this.tilemaps.get(n);
+        if (tm) {
+            tm.destroy();
+            this.tilemaps.delete(n);
         }
     }
 
-    _buildTilemap() {
+    private _buildTilemap() {
         this._destroyTilemap();
         // 1. [y][x] to access tile x, y
-        this._map = this.make.tilemap({
+        this.tilemap = this.make.tilemap({
             data: this.worldGenerator.mapData,
             tileWidth: this.tileSize,
             tileHeight: this.tileSize,
@@ -62,7 +109,7 @@ export class WorldScene extends Phaser.Scene {
         //    Paramètres : (nom logique, clé texture, largeur tile, hauteur tile)
         //    Phaser calcule automatiquement les UV de chaque tile :
         //    tile N → rect { x: N*64, y: 0, w: 64, h: 64 } dans la texture
-        this.map.addTilesetImage(
+        this.tilemap.addTilesetImage(
             'tileset', // logical name, used by layers to render image
             'tileset', // texture key in phaser cache
             this.tileSize,
@@ -75,7 +122,7 @@ export class WorldScene extends Phaser.Scene {
         //    → optimized WebGL rendering in one draw call
         //    → auto frustum culling (only visible tiles are rendered)
         //    → data uploaded in GPU at one time
-        const layer = this.map.createLayer(
+        const layer = this.tilemap.createLayer(
             0, // in map layer index
             'tileset', // used tileset (referenced by logical name)
             0, // in world x pos
@@ -87,11 +134,11 @@ export class WorldScene extends Phaser.Scene {
         this.layer = layer;
 
         // 4. Setting collision tiles
-        this.tiles.forEach((t) => {
-            if (t.solid) {
-                this.map.setCollision(t.id);
-            }
-        });
+        // this.tiles.forEach((t) => {
+        //     if (t.solid) {
+        //         this.map.setCollision(t.id);
+        //     }
+        // });
     }
 
     _setupCamera() {
