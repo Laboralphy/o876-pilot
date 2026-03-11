@@ -1,4 +1,4 @@
-import { TileDefinition } from './tile-definition';
+import { TileDefinition } from './tiles';
 import { hexstr } from '../../../libs/hexstr';
 
 export function drawNebula(ctx: CanvasRenderingContext2D, tile: TileDefinition, tileSize: number) {

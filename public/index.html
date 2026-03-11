@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tilemap Optimisée — Phaser 3</title>
+    <script src="./dist/game.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #07090f;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            font-family: 'Courier New', monospace;
+            color: #7af7ff;
+        }
+        h1 {
+            font-size: 0.85rem;
+            letter-spacing: 0.35em;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+            opacity: 0.6;
+        }
+        #game-container {
+            border: 1px solid #7af7ff22;
+            box-shadow: 0 0 60px #7af7ff11;
+        }
+        #hud {
+            display: flex;
+            gap: 28px;
+            margin-top: 12px;
+            font-size: 0.68rem;
+            letter-spacing: 0.12em;
+            opacity: 0.5;
+        }
+        #controls { margin-top: 6px; font-size: 0.65rem; letter-spacing: 0.1em; opacity: 0.35; }
+    </style>
+</head>
+<body>
+
+<h1>⬡ Tilemap Optimisée — StaticTilemapLayer + Atlas</h1>
+<div id="game-container"></div>
+</body>
+</html>

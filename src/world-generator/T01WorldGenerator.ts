@@ -1,10 +1,36 @@
-import { WordGenerator } from '../WorldGenerator';
-import { CELLS } from './cells';
+import { WordGenerator } from './WorldGenerator';
 
 export type T01Cell = {
     id: number;
     weight: number;
 };
+
+const CELLS: T01Cell[] = [
+    {
+        id: 0,
+        weight: 65,
+    },
+    {
+        id: 1,
+        weight: 25,
+    },
+    {
+        id: 2,
+        weight: 18,
+    },
+    {
+        id: 3,
+        weight: 10,
+    },
+    {
+        id: 4,
+        weight: 5,
+    },
+    {
+        id: 5,
+        weight: 2,
+    },
+];
 
 export class T01WorldGenerator extends WordGenerator {
     private totalWeight: number = 0;
@@ -33,12 +59,13 @@ export class T01WorldGenerator extends WordGenerator {
             0
         );
         this.walkMapData(() => this.initMapDataCell());
-        const raw = this.mapData;
 
-        this.mapData.splice(0, this.mapData.length);
-        raw.map((row, y) =>
-            row.map((id, x) => {
-                if (Math.random() > 0.4) return id;
+        for (let y = 0, maxy = this.mapData.length; y < maxy; y++) {
+            for (let x = 0, maxx = this.mapData[y].length; x < maxx; x++) {
+                const id = this.mapData[y][x];
+                if (Math.random() > 0.4) {
+                    continue;
+                }
                 const neighbors = this.getNeighbors(x, y);
                 const freq = new Map<number, number>();
                 let best = id,
@@ -51,11 +78,9 @@ export class T01WorldGenerator extends WordGenerator {
                         best = n;
                     }
                 }
-                return best;
-            })
-        ).forEach((row) => {
-            this.mapData.push(row);
-        });
+                this.mapData[y][x] = best;
+            }
+        }
         return this.mapData;
     }
 }

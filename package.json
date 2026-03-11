@@ -1,16 +1,38 @@
 {
-  "devDependencies": {
-    "@types/node": "^25.3.5",
-    "eslint": "^10.0.2",
-    "eslint-config-prettier": "^10.1.8",
-    "eslint-plugin-prettier": "^5.5.5",
-    "prettier": "^3.8.1",
-    "tsx": "^4.21.0",
-    "typescript": "^5.9.3",
-    "typescript-eslint": "^8.56.1",
-    "vitest": "^4.0.18"
-  },
-  "dependencies": {
-    "phaser": "^3.90.0"
-  }
+    "name": "o876-pilot",
+    "version": "1.0.0",
+    "description": "",
+    "main": "eslint.config.js",
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1",
+        "build": "esbuild src/index.ts --bundle --outfile=dist/game.js --platform=browser",
+        "watch": "esbuild src/index.ts --bundle --outfile=dist/game.js --platform=browser --watch",
+        "dev": "esbuild src/index.ts --bundle --outfile=public/dist/game.js --platform=browser --watch --servedir=./public"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/Laboralphy/o876-pilot.git"
+    },
+    "keywords": [],
+    "author": "",
+    "license": "ISC",
+    "bugs": {
+        "url": "https://github.com/Laboralphy/o876-pilot/issues"
+    },
+    "homepage": "https://github.com/Laboralphy/o876-pilot#readme",
+    "devDependencies": {
+        "@types/node": "^25.3.5",
+        "esbuild": "^0.27.3",
+        "eslint": "^10.0.2",
+        "eslint-config-prettier": "^10.1.8",
+        "eslint-plugin-prettier": "^5.5.5",
+        "prettier": "^3.8.1",
+        "tsx": "^4.21.0",
+        "typescript": "^5.9.3",
+        "typescript-eslint": "^8.56.1",
+        "vitest": "^4.0.18"
+    },
+    "dependencies": {
+        "phaser": "^3.90.0"
+    }
 }
