@@ -1,9 +1,13 @@
-export abstract class TileRenderer<T> {
-    private readonly tileData: T[];
-    private readonly tileSize: number;
-    protected constructor(tileData: T[], tileSize: number) {
-        this.tileData = tileData;
-        this.tileSize = tileSize;
+import { ITileRenderer } from './ITileRenderer';
+
+export abstract class TileRenderer<T> implements ITileRenderer {
+    protected constructor(
+        private readonly _tileData: T[],
+        private readonly _tileSize: number
+    ) {}
+
+    get tileSize(): number {
+        return this._tileSize;
     }
 
     abstract drawTile(ctx: CanvasRenderingContext2D, tile: T, tileSize: number): void;
@@ -25,8 +29,8 @@ export abstract class TileRenderer<T> {
     }
 
     buildTileset(): HTMLCanvasElement {
-        const tiles = this.tileData;
-        const tileSize = this.tileSize;
+        const tiles = this._tileData;
+        const tileSize = this._tileSize;
         const tileCount = tiles.length;
         const tilesetWidth = Math.ceil(Math.sqrt(tileCount));
         const canvas = document.createElement('canvas');
