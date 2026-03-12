@@ -1,9 +1,11 @@
-import { TileDefinition } from './tiles';
-import { hexstr } from '../../../libs/hexstr';
+import { AstroTileDefinition } from '../AstroTileDefinition';
+import { hexstr } from '../../../../libs/hexstr';
+import { ISeededRNG } from '../../../../libs/mulberry32/ISeededRNG';
 
 export function drawSpaceAnomaly(
     ctx: CanvasRenderingContext2D,
-    tile: TileDefinition,
+    rng: ISeededRNG,
+    tile: AstroTileDefinition,
     tileSize: number
 ) {
     ctx.fillStyle = hexstr(tile.color);

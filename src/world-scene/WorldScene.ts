@@ -1,6 +1,4 @@
 import Phaser from 'phaser';
-import { IWorldGenerator } from '../world-generator/IWorldGenerator';
-import { ITileRenderer } from '../tile-renderer/ITileRenderer';
 
 type AnyLayer =
     | Phaser.GameObjects.Layer
@@ -8,18 +6,17 @@ type AnyLayer =
     | Phaser.GameObjects.TileSprite;
 
 export type LayerDefinition = {
-    worldGenerator: IWorldGenerator; // instance of world generator
-    tileRenderer: ITileRenderer; // instance of tile renderer
+    zIndex: number;
+    mapData: number[][]; // The real map data
+    texture: HTMLCanvasElement; // The tileset image
     tileSize: number; // size of a tile in pixels
     tilesetWidth: number; // number of tiles in a row
     tilesetHeight: number; // number of tiles in a column
     scrollFactor: number; // 1 = scroll with camera, 0 = no scroll, 0.5 = parallax scrolling, all values accepted
-    cellTiles: { cell: number; tiles: number[] }[];
 };
 
 export type WorldSceneOptions = {
     key: string; // scene key, used to orchestrate between scenes
-    layers: LayerDefinition[]; // list of layer definitions
 };
 
 const CAM_SPEED = 400; // px/s
@@ -37,21 +34,17 @@ type Controls = {
     down: Phaser.Input.Keyboard.Key;
 };
 
-export class WorldScene extends Phaser.Scene {
+export abstract class WorldScene extends Phaser.Scene {
     protected readonly tilemaps = new Map<number, Phaser.Tilemaps.Tilemap>();
     protected readonly layers = new Map<number, AnyLayer>();
-    protected readonly layerDefinitions: LayerDefinition[];
+    protected layerDefinitions: LayerDefinition[] = [];
     protected worldWidth: number = 0; // in pixels
     protected worldHeight: number = 0; // in pixels
     protected controls: Controls | undefined = undefined;
     protected debugText: Phaser.GameObjects.Text | undefined;
 
-    constructor(options: WorldSceneOptions) {
+    protected constructor(options: WorldSceneOptions) {
         super({ key: options.key });
-        this.layerDefinitions = options.layers;
-        const { width, height } = this._computeWorldSize();
-        this.worldWidth = width;
-        this.worldHeight = height;
     }
 
     /**
@@ -74,16 +67,15 @@ export class WorldScene extends Phaser.Scene {
 
     private _buildLayer(n: number, ld: LayerDefinition) {
         const idTileset = 'tileset-' + n.toString();
-        const mapData = ld.worldGenerator.generateMapData();
-        const tilesetCanvas = ld.tileRenderer.buildTileset();
-        this.textures.addCanvas(idTileset, tilesetCanvas);
+        this.textures.addCanvas(idTileset, ld.texture);
 
         // Tilemap
         const tilemap = this.make.tilemap({
-            data: mapData,
+            data: ld.mapData,
             tileWidth: ld.tileSize,
             tileHeight: ld.tileSize,
         });
+
         const tileset = tilemap.addTilesetImage(
             idTileset, // logical name, used by layers to render image
             idTileset, // texture key in phaser cache
@@ -111,15 +103,8 @@ export class WorldScene extends Phaser.Scene {
             throw new Error('Could not build tilemap layer');
         }
         layer.setScrollFactor(ld.scrollFactor);
+        layer.setDepth(ld.zIndex);
         this.layers.set(n, layer);
-    }
-
-    private _destroyTilemap(n: number) {
-        const tm = this.tilemaps.get(n);
-        if (tm) {
-            tm.destroy();
-            this.tilemaps.delete(n);
-        }
     }
 
     private _setupCamera() {
@@ -212,12 +197,69 @@ export class WorldScene extends Phaser.Scene {
         // document.getElementById('hud-cam').textContent = `Zoom: ${cam.zoom.toFixed(2)}×`;
     }
 
-    create() {
+    protected _destroyLayer(id: number): void {
+        const layer = this.layers.get(id);
+        if (!layer) return;
+
+        if (layer instanceof Phaser.Tilemaps.TilemapLayer) {
+            layer.destroy(); // retire du display list + libère la géométrie tilemap
+        } else if (layer instanceof Phaser.GameObjects.TileSprite) {
+            layer.destroy(); // retire du display list + libère le RenderTexture interne
+        } else {
+            layer.destroy(true);
+        }
+
+        this.layers.delete(id);
+    }
+
+    protected _destroyTilemap(id: number): void {
+        const tilemap = this.tilemaps.get(id);
+        if (!tilemap) {
+            return;
+        }
+
+        // First destroy associated TilemapLayers
+        this.layers.forEach((layer, layerId) => {
+            if (layer instanceof Phaser.Tilemaps.TilemapLayer && layer.tilemap === tilemap) {
+                this._destroyLayer(layerId);
+            }
+            const tilesetTextureKeys = tilemap.tilesets.map((ts) => ts.image?.key).filter(Boolean);
+            tilesetTextureKeys.forEach((key) => {
+                if (typeof key === 'string' && this.textures.exists(key)) {
+                    this.textures.remove(key);
+                }
+            });
+        });
+
+        tilemap.destroy(); // libère les données MapData du cache interne
+        this.tilemaps.delete(id);
+    }
+
+    /**
+     * Destroy all layers and tilemasps.
+     * This is called automatically when the scene is destroyed.
+     * @protected
+     */
+    protected _destroyAllResources(): void {
+        [...this.layers.keys()].forEach((id) => this._destroyLayer(id));
+        [...this.tilemaps.keys()].forEach((id) => this._destroyTilemap(id));
+    }
+
+    protected _createResources(): void {
+        const { width, height } = this._computeWorldSize();
+        this.worldWidth = width;
+        this.worldHeight = height;
         this.layerDefinitions.forEach((ld, n) => this._buildLayer(n, ld));
+    }
+
+    create() {
+        this._createResources();
         this._setupCamera();
         this._setupInput();
         this._buildDebugUI();
         this._updateHUD();
+        this.events.once('shutdown', () => this._destroyAllResources());
+        this.events.once('destroy', () => this._destroyAllResources());
     }
 
     preload() {}

@@ -1,9 +1,11 @@
-import { TileDefinition } from './tiles';
-import { hexstr } from '../../../libs/hexstr';
+import { AstroTileDefinition } from '../AstroTileDefinition';
+import { hexstr } from '../../../../libs/hexstr';
+import { ISeededRNG } from '../../../../libs/mulberry32/ISeededRNG';
 
 export function drawAsteroid(
     ctx: CanvasRenderingContext2D,
-    tile: TileDefinition,
+    rng: ISeededRNG,
+    tile: AstroTileDefinition,
     tileSize: number
 ) {
     ctx.fillStyle = hexstr(tile.color);
@@ -16,7 +18,7 @@ export function drawAsteroid(
     const pts = 8;
     for (let i = 0; i < pts; i++) {
         const a = (i / pts) * Math.PI * 2;
-        const r = baseR * (0.65 + Math.random() * 0.5);
+        const r = baseR * (0.65 + rng.nextFloat(0, 0.5));
         const px = cx + Math.cos(a) * r;
         const py = cy + Math.sin(a) * r;
         if (i === 0) {

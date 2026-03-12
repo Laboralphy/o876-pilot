@@ -1,9 +1,11 @@
-import { TileDefinition } from './tiles';
-import { hexstr } from '../../../libs/hexstr';
+import { AstroTileDefinition } from '../AstroTileDefinition';
+import { hexstr } from '../../../../libs/hexstr';
+import { ISeededRNG } from '../../../../libs/mulberry32/ISeededRNG';
 
 export function drawGoldCrystal(
     ctx: CanvasRenderingContext2D,
-    tile: TileDefinition,
+    rng: ISeededRNG,
+    tile: AstroTileDefinition,
     tileSize: number
 ) {
     ctx.fillStyle = hexstr(tile.color);
@@ -13,11 +15,11 @@ export function drawGoldCrystal(
     const golds = ['#ffd700cc', '#ffaa00cc', '#ffe066cc', '#fff0aacc'];
     for (let i = 0; i < 6; i++) {
         ctx.fillStyle = golds[i % golds.length];
-        const ox2 = Math.random() * (tileSize - 18) + 8;
-        const oy2 = Math.random() * (tileSize - 18) + 8;
+        const ox2 = rng.nextInt(8, tileSize - 10);
+        const oy2 = rng.nextInt(8, tileSize - 10);
         ctx.save();
         ctx.translate(ox2, oy2);
-        ctx.rotate(Math.random() * Math.PI);
+        ctx.rotate(rng.nextFloat(0, Math.PI));
         ctx.fillRect(-6, -3, 12, 6);
         ctx.restore();
     }

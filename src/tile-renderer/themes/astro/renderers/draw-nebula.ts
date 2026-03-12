@@ -1,7 +1,13 @@
-import { TileDefinition } from './tiles';
-import { hexstr } from '../../../libs/hexstr';
+import { AstroTileDefinition } from '../AstroTileDefinition';
+import { hexstr } from '../../../../libs/hexstr';
+import { ISeededRNG } from '../../../../libs/mulberry32/ISeededRNG';
 
-export function drawNebula(ctx: CanvasRenderingContext2D, tile: TileDefinition, tileSize: number) {
+export function drawNebula(
+    ctx: CanvasRenderingContext2D,
+    rng: ISeededRNG,
+    tile: AstroTileDefinition,
+    tileSize: number
+) {
     ctx.fillStyle = hexstr(tile.color);
     ctx.fillRect(0, 0, tileSize, tileSize);
     const g = ctx.createRadialGradient(
@@ -21,7 +27,7 @@ export function drawNebula(ctx: CanvasRenderingContext2D, tile: TileDefinition, 
     ctx.fillStyle = '#ffffffaa';
     for (let i = 0; i < 5; i++) {
         ctx.beginPath();
-        ctx.arc(Math.random() * tileSize, Math.random() * tileSize, 0.7, 0, Math.PI * 2);
+        ctx.arc(rng.nextInt(0, tileSize), rng.nextInt(0, tileSize), 0.7, 0, Math.PI * 2);
         ctx.fill();
     }
 }

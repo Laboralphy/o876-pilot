@@ -1,42 +1,30 @@
 import { WordGenerator } from './WorldGenerator';
+import { ISeededRNG } from '../libs/mulberry32/ISeededRNG';
 
-export type T01Cell = {
+export type WeightedRandomCellDefinition = {
     id: number;
     weight: number;
 };
 
-const CELLS: T01Cell[] = [
-    {
-        id: 0,
-        weight: 65,
-    },
-    {
-        id: 1,
-        weight: 18,
-    },
-    {
-        id: 2,
-        weight: 10,
-    },
-    {
-        id: 3,
-        weight: 5,
-    },
-    {
-        id: 4,
-        weight: 2,
-    },
-];
-
-export class T01WorldGenerator extends WordGenerator {
+/**
+ * Weighted random cell generator for world generation.
+ * This generator will randomly choose a cell from a weighted list of cells.
+ * And will prioritize cells of the same weight in order to form clusters of cells.
+ */
+export class WeightedRandomCells extends WordGenerator {
     private totalWeight: number = 0;
-    private cellData = new Map<number, T01Cell>();
-    constructor(worldWidth: number, worldHeight: number) {
+    private cellData = new Map<number, WeightedRandomCellDefinition>();
+    constructor(
+        private readonly cellDefinition: WeightedRandomCellDefinition[],
+        worldWidth: number,
+        worldHeight: number,
+        protected readonly rng: ISeededRNG
+    ) {
         super(worldWidth, worldHeight);
     }
 
     private initMapDataCell(): number {
-        let r = Math.random() * this.totalWeight;
+        let r = this.rng.nextInt(0, this.totalWeight);
         for (const t of this.cellData.values()) {
             r -= t.weight;
             if (r <= 0) {
@@ -47,11 +35,11 @@ export class T01WorldGenerator extends WordGenerator {
     }
 
     generateMapData() {
-        CELLS.forEach((cell) => {
+        this.cellDefinition.forEach((cell) => {
             this.cellData.set(cell.id, cell);
         });
-        this.totalWeight = CELLS.reduce(
-            (totalWeight: number, cell: T01Cell) => totalWeight + cell.weight,
+        this.totalWeight = this.cellDefinition.reduce(
+            (totalWeight: number, cell: WeightedRandomCellDefinition) => totalWeight + cell.weight,
             0
         );
         this.walkMapData(() => this.initMapDataCell());
@@ -59,7 +47,7 @@ export class T01WorldGenerator extends WordGenerator {
         for (let y = 0, maxy = this.mapData.length; y < maxy; y++) {
             for (let x = 0, maxx = this.mapData[y].length; x < maxx; x++) {
                 const id = this.mapData[y][x];
-                if (Math.random() > 0.4) {
+                if (this.rng.nextBool(0.6)) {
                     continue;
                 }
                 const neighbors = this.getNeighbors(x, y);

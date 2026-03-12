@@ -1,9 +1,11 @@
-import { TileDefinition } from './tiles';
-import { hexstr } from '../../../libs/hexstr';
+import { AstroTileDefinition } from '../AstroTileDefinition';
+import { hexstr } from '../../../../libs/hexstr';
+import { ISeededRNG } from '../../../../libs/mulberry32/ISeededRNG';
 
 export function drawSpreadStars(
     ctx: CanvasRenderingContext2D,
-    tile: TileDefinition,
+    rng: ISeededRNG,
+    tile: AstroTileDefinition,
     tileSize: number
 ) {
     ctx.fillStyle = hexstr(tile.color);
@@ -12,14 +14,14 @@ export function drawSpreadStars(
     for (let i = 0; i < 8; i++) {
         const r = Math.random() * 1.4 + 0.3;
         ctx.beginPath();
-        ctx.arc(Math.random() * tileSize, Math.random() * tileSize, r, 0, Math.PI * 2);
+        ctx.arc(rng.nextInt(0, tileSize), rng.nextInt(0, tileSize), r, 0, Math.PI * 2);
         ctx.fill();
     }
     // 1 étoile brillante occasionnelle
     if (Math.random() < 0.3) {
         ctx.fillStyle = '#ffffffcc';
         ctx.beginPath();
-        ctx.arc(Math.random() * tileSize, Math.random() * tileSize, 1.2, 0, Math.PI * 2);
+        ctx.arc(rng.nextInt(0, tileSize), rng.nextInt(0, tileSize), 1.2, 0, Math.PI * 2);
         ctx.fill();
     }
 }

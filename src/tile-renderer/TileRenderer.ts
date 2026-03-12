@@ -1,10 +1,30 @@
 import { ITileRenderer } from './ITileRenderer';
 
-export abstract class TileRenderer<T> implements ITileRenderer {
+export type AnimationDefinition = {
+    frameCount: number;
+    duration: number;
+    loopType: number;
+    interpolation: number;
+};
+
+export type TileDefinition = {
+    id: number;
+    animation?: AnimationDefinition;
+};
+
+export abstract class TileRenderer<T extends TileDefinition> implements ITileRenderer {
     protected constructor(
         private readonly _tileData: T[],
         private readonly _tileSize: number
     ) {}
+
+    getTileIndexRegistry(): Map<number, number> {
+        const registry = new Map<number, number>();
+        this._tileData.forEach((tile, index) => {
+            registry.set(tile.id, index);
+        });
+        return registry;
+    }
 
     get tileSize(): number {
         return this._tileSize;

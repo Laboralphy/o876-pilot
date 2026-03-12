@@ -4,8 +4,8 @@ export abstract class WordGenerator {
     public readonly mapData: number[][] = [];
 
     protected constructor(
-        private readonly worldWidth: number,
-        private readonly worldHeight: number
+        public readonly worldWidth: number,
+        public readonly worldHeight: number
     ) {
         this.initMapData();
     }
