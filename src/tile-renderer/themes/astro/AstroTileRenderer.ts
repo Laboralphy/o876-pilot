@@ -1,5 +1,3 @@
-import { drawSpreadStars } from './draw-spread-stars';
-import { drawNebula } from './draw-nebula';
 import { drawCrackedBlock } from './draw-cracked-block';
 import { drawAsteroid } from './draw-asteroid';
 import { drawGoldCrystal } from './draw-gold-crystal';
@@ -12,8 +10,6 @@ export class AstroTileRenderer extends TileRenderer<TileDefinition> {
         string,
         (ctx: CanvasRenderingContext2D, tile: TileDefinition, tileSize: number) => void
     > = {
-        drawSpreadStars,
-        drawNebula,
         drawCrackedBlock,
         drawAsteroid,
         drawGoldCrystal,

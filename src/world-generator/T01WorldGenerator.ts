@@ -12,22 +12,18 @@ const CELLS: T01Cell[] = [
     },
     {
         id: 1,
-        weight: 25,
-    },
-    {
-        id: 2,
         weight: 18,
     },
     {
-        id: 3,
+        id: 2,
         weight: 10,
     },
     {
-        id: 4,
+        id: 3,
         weight: 5,
     },
     {
-        id: 5,
+        id: 4,
         weight: 2,
     },
 ];

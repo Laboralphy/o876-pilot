@@ -14,6 +14,7 @@ export type LayerDefinition = {
     tilesetWidth: number; // number of tiles in a row
     tilesetHeight: number; // number of tiles in a column
     scrollFactor: number; // 1 = scroll with camera, 0 = no scroll, 0.5 = parallax scrolling, all values accepted
+    cellTiles: { cell: number; tiles: number[] }[];
 };
 
 export type WorldSceneOptions = {
