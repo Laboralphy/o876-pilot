@@ -11,8 +11,8 @@ export type WeightedRandomCellDefinition = {
  * This generator will randomly choose a cell from a weighted list of cells.
  * And will prioritize cells of the same weight in order to form clusters of cells.
  */
-export class WeightedRandomCells extends WordGenerator {
-    private totalWeight: number = 0;
+export class WeightedRandomCells extends WordGenerator<number> {
+    private readonly totalWeight: number = 0;
     private cellData = new Map<number, WeightedRandomCellDefinition>();
     constructor(
         private readonly cellDefinition: WeightedRandomCellDefinition[],
@@ -21,9 +21,20 @@ export class WeightedRandomCells extends WordGenerator {
         protected readonly rng: ISeededRNG
     ) {
         super(worldWidth, worldHeight);
+        this.cellDefinition.forEach((cell) => {
+            this.cellData.set(cell.id, cell);
+        });
+        this.totalWeight = this.cellDefinition.reduce(
+            (totalWeight: number, cell: WeightedRandomCellDefinition) => totalWeight + cell.weight,
+            0
+        );
     }
 
-    private initMapDataCell(): number {
+    nullValue() {
+        return 0;
+    }
+
+    initCell(): number {
         let r = this.rng.nextInt(0, this.totalWeight);
         for (const t of this.cellData.values()) {
             r -= t.weight;
@@ -34,19 +45,11 @@ export class WeightedRandomCells extends WordGenerator {
         return 0;
     }
 
-    generateMapData() {
-        this.cellDefinition.forEach((cell) => {
-            this.cellData.set(cell.id, cell);
-        });
-        this.totalWeight = this.cellDefinition.reduce(
-            (totalWeight: number, cell: WeightedRandomCellDefinition) => totalWeight + cell.weight,
-            0
-        );
-        this.walkMapData(() => this.initMapDataCell());
-
-        for (let y = 0, maxy = this.mapData.length; y < maxy; y++) {
-            for (let x = 0, maxx = this.mapData[y].length; x < maxx; x++) {
-                const id = this.mapData[y][x];
+    generate() {
+        this.walkCells(() => this.initCell());
+        for (let y = 0, maxy = this.cellMap.length; y < maxy; y++) {
+            for (let x = 0, maxx = this.cellMap[y].length; x < maxx; x++) {
+                const id = this.cellMap[y][x];
                 if (this.rng.nextBool(0.6)) {
                     continue;
                 }
@@ -62,9 +65,9 @@ export class WeightedRandomCells extends WordGenerator {
                         best = n;
                     }
                 }
-                this.mapData[y][x] = best;
+                this.cellMap[y][x] = best;
             }
         }
-        return this.mapData;
+        return this.cellMap;
     }
 }

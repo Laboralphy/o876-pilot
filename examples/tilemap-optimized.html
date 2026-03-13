@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tilemap Optimisée — Phaser 3</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/phaser/3.60.0/phaser.min.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #07090f;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    font-family: 'Courier New', monospace;
+    color: #7af7ff;
+  }
+  h1 {
+    font-size: 0.85rem;
+    letter-spacing: 0.35em;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    opacity: 0.6;
+  }
+  #game-container {
+    border: 1px solid #7af7ff22;
+    box-shadow: 0 0 60px #7af7ff11;
+  }
+  #hud {
+    display: flex;
+    gap: 28px;
+    margin-top: 12px;
+    font-size: 0.68rem;
+    letter-spacing: 0.12em;
+    opacity: 0.5;
+  }
+  #controls { margin-top: 6px; font-size: 0.65rem; letter-spacing: 0.1em; opacity: 0.35; }
+</style>
+</head>
+<body>
+
+<h1>⬡ Tilemap Optimisée — StaticTilemapLayer + Atlas</h1>
+<div id="game-container"></div>
+<div id="hud">
+  <span id="hud-map"></span>
+  <span id="hud-tiles"></span>
+  <span id="hud-draw"></span>
+  <span id="hud-cam"></span>
+</div>
+<div id="controls">
+  [ ZQSD / WASD / FLÈCHES ] Déplacer &nbsp;|&nbsp; [ +/- ] Zoom &nbsp;|&nbsp; [ R ] Régénérer
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+//  CONFIGURATION GLOBALE
+// ═══════════════════════════════════════════════════════════
+
+const TILE_SIZE  = 64;    // px par tuile
+const MAP_W      = 200;   // tuiles largeur  → monde 12 800 px
+const MAP_H      = 200;   // tuiles hauteur  → monde 12 800 px
+const CAM_SPEED  = 400;   // px/s
+const CAM_ZOOM_MIN = 0.25;
+const CAM_ZOOM_MAX = 2.0;
+
+// ═══════════════════════════════════════════════════════════
+//  DÉFINITION DES TILES
+//  id   = index dans le tileset atlas (0-based, ligne par ligne)
+//  weight = fréquence relative pour la génération
+// ═══════════════════════════════════════════════════════════
+
+const TILES = [
+  { id: 0, name: 'Void',     color: 0x0d1b2e, accent: 0x1a3a5c, weight: 40, solid: false },
+  { id: 1, name: 'Nebula',   color: 0x1a3358, accent: 0x2d5a8e, weight: 25, solid: false },
+  { id: 2, name: 'Asteroid', color: 0x2a4a35, accent: 0x4a7a5a, weight: 18, solid: true  },
+  { id: 3, name: 'Rock',     color: 0x4a3218, accent: 0x8a5a2a, weight: 10, solid: true  },
+  { id: 4, name: 'Ore',      color: 0x6a5010, accent: 0xc8a020, weight:  5, solid: true  },
+  { id: 5, name: 'Anomaly',  color: 0x2a0a4a, accent: 0x5a1a8a, weight:  2, solid: false },
+];
+
+const TOTAL_WEIGHT = TILES.reduce((s, t) => s + t.weight, 0);
+
+// ═══════════════════════════════════════════════════════════
+//  GÉNÉRATION DU TILESET ATLAS
+//
+//  Toutes les tiles sont dessinées côte à côte sur UN SEUL
+//  canvas → une seule texture GPU → un seul bind par frame.
+//
+//  Layout du canvas résultant (TILES.length × TILE_SIZE de large) :
+//  ┌────────┬────────┬────────┬────────┬────────┬────────┐
+//  │ tile 0 │ tile 1 │ tile 2 │ tile 3 │ tile 4 │ tile 5 │
+//  │  64px  │  64px  │  64px  │  64px  │  64px  │  64px  │
+//  └────────┴────────┴────────┴────────┴────────┴────────┘
+//     384 px × 64 px au total
+// ═══════════════════════════════════════════════════════════
+
+function buildTilesetCanvas() {
+  const cols   = TILES.length;
+  const canvas = document.createElement('canvas');
+  canvas.width  = cols * TILE_SIZE;
+  canvas.height = TILE_SIZE;
+  const ctx = canvas.getContext('2d');
+
+  TILES.forEach((tile, col) => {
+    const ox = col * TILE_SIZE;  // offset x pour cette tile dans l'atlas
+    drawTile(ctx, tile, ox, 0);
+  });
+
+  return canvas;
+}
+
+// ───────────────────────────────────────────────────────────
+//  Dessin d'une tuile dans le canvas atlas à la position ox,oy
+// ───────────────────────────────────────────────────────────
+
+function drawTile(ctx, tile, ox, oy) {
+  const S  = TILE_SIZE;
+  const c  = hex => '#' + hex.toString(16).padStart(6, '0');
+
+  // Fond de base
+  ctx.fillStyle = c(tile.color);
+  ctx.fillRect(ox, oy, S, S);
+
+  ctx.save();
+  ctx.translate(ox, oy);   // on travaille en coordonnées locales à la tile
+
+  switch (tile.id) {
+
+    case 0: { // VOID — étoiles dispersées
+      ctx.fillStyle = c(tile.accent);
+      for (let i = 0; i < 8; i++) {
+        const r = Math.random() * 1.4 + 0.3;
+        ctx.beginPath();
+        ctx.arc(Math.random() * S, Math.random() * S, r, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      // 1 étoile brillante occasionnelle
+      if (Math.random() < 0.3) {
+        ctx.fillStyle = '#ffffffcc';
+        ctx.beginPath();
+        ctx.arc(Math.random() * S, Math.random() * S, 1.2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      break;
+    }
+
+    case 1: { // NEBULA — dégradé radial
+      const g = ctx.createRadialGradient(S/2, S/2, 2, S/2, S/2, S * 0.72);
+      g.addColorStop(0,   c(tile.accent) + 'dd');
+      g.addColorStop(0.5, c(tile.accent) + '55');
+      g.addColorStop(1,   c(tile.color)  + '00');
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, S, S);
+      // petites étoiles
+      ctx.fillStyle = '#ffffffaa';
+      for (let i = 0; i < 5; i++) {
+        ctx.beginPath();
+        ctx.arc(Math.random() * S, Math.random() * S, 0.7, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      break;
+    }
+
+    case 2: { // ASTEROID — polygone irrégulier
+      const cx = S / 2, cy = S / 2, baseR = S * 0.33;
+      ctx.fillStyle = c(tile.accent);
+      ctx.beginPath();
+      const pts = 8;
+      for (let i = 0; i < pts; i++) {
+        const a  = (i / pts) * Math.PI * 2;
+        const r  = baseR * (0.65 + Math.random() * 0.5);
+        const px = cx + Math.cos(a) * r;
+        const py = cy + Math.sin(a) * r;
+        i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+      }
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = '#00000066';
+      ctx.lineWidth   = 2;
+      ctx.stroke();
+      // highlight
+      ctx.fillStyle = '#ffffff1a';
+      ctx.beginPath();
+      ctx.arc(cx - 9, cy - 9, 7, 0, Math.PI * 2);
+      ctx.fill();
+      break;
+    }
+
+    case 3: { // ROCK — blocs + fissures
+      ctx.fillStyle = c(tile.accent);
+      for (let i = 0; i < 6; i++) {
+        ctx.fillRect(
+          Math.random() * S * 0.55 + S * 0.1,
+          Math.random() * S * 0.55 + S * 0.1,
+          Math.random() * 22 + 10,
+          Math.random() * 16 + 8
+        );
+      }
+      ctx.strokeStyle = c(tile.color) + 'bb';
+      ctx.lineWidth   = 1;
+      for (let i = 0; i < 4; i++) {
+        ctx.beginPath();
+        ctx.moveTo(Math.random() * S, Math.random() * S);
+        ctx.lineTo(Math.random() * S, Math.random() * S);
+        ctx.stroke();
+      }
+      break;
+    }
+
+    case 4: { // ORE — cristaux dorés
+      ctx.fillStyle = c(tile.accent) + '55';
+      ctx.fillRect(4, 4, S - 8, S - 8);
+      const golds = ['#ffd700cc', '#ffaa00cc', '#ffe066cc', '#fff0aacc'];
+      for (let i = 0; i < 6; i++) {
+        ctx.fillStyle = golds[i % golds.length];
+        const ox2 = Math.random() * (S - 18) + 8;
+        const oy2 = Math.random() * (S - 18) + 8;
+        ctx.save();
+        ctx.translate(ox2, oy2);
+        ctx.rotate(Math.random() * Math.PI);
+        ctx.fillRect(-6, -3, 12, 6);
+        ctx.restore();
+      }
+      // glow
+      const gOre = ctx.createRadialGradient(S/2, S/2, 2, S/2, S/2, S/2);
+      gOre.addColorStop(0, '#ffd70055');
+      gOre.addColorStop(1, 'transparent');
+      ctx.fillStyle = gOre;
+      ctx.fillRect(0, 0, S, S);
+      break;
+    }
+
+    case 5: { // ANOMALY — anneaux concentriques
+      for (let r = S * 0.44; r > 5; r -= 9) {
+        const alpha = Math.floor((r / (S * 0.44)) * 200).toString(16).padStart(2, '0');
+        ctx.strokeStyle = c(tile.accent) + alpha;
+        ctx.lineWidth   = 2.5;
+        ctx.beginPath();
+        ctx.arc(S / 2, S / 2, r, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      const gAno = ctx.createRadialGradient(S/2, S/2, 0, S/2, S/2, 18);
+      gAno.addColorStop(0, '#cc88ff');
+      gAno.addColorStop(1, '#5a1a8a00');
+      ctx.fillStyle = gAno;
+      ctx.beginPath();
+      ctx.arc(S / 2, S / 2, 18, 0, Math.PI * 2);
+      ctx.fill();
+      break;
+    }
+  }
+
+  // Bordure subtile commune
+  ctx.strokeStyle = '#ffffff07';
+  ctx.lineWidth   = 1;
+  ctx.strokeRect(0.5, 0.5, S - 1, S - 1);
+
+  ctx.restore();
+}
+
+// ═══════════════════════════════════════════════════════════
+//  GÉNÉRATION PROCÉDURALE DE LA MAP
+//
+//  Retourne un tableau 2D d'indices (0..TILES.length-1)
+//  compatible avec Phaser.Tilemaps.ParseToTilemap({ data })
+// ═══════════════════════════════════════════════════════════
+
+function weightedRandom() {
+  let r = Math.random() * TOTAL_WEIGHT;
+  for (const t of TILES) { r -= t.weight; if (r <= 0) return t.id; }
+  return 0;
+}
+
+function generateMapData() {
+  // Passe 1 : tirage pondéré
+  const raw = Array.from({ length: MAP_H }, () =>
+    Array.from({ length: MAP_W }, weightedRandom)
+  );
+
+  // Passe 2 : lissage cellulaire (crée des clusters cohérents)
+  return raw.map((row, y) =>
+    row.map((id, x) => {
+      if (Math.random() > 0.4) return id;
+      const neighbors = [];
+      for (let dy = -1; dy <= 1; dy++)
+        for (let dx = -1; dx <= 1; dx++) {
+          const ny = y + dy, nx = x + dx;
+          if (ny >= 0 && ny < MAP_H && nx >= 0 && nx < MAP_W)
+            neighbors.push(raw[ny][nx]);
+        }
+      const freq = {};
+      let best = id, bestC = 0;
+      for (const n of neighbors) {
+        freq[n] = (freq[n] || 0) + 1;
+        if (freq[n] > bestC) { bestC = freq[n]; best = n; }
+      }
+      return best;
+    })
+  );
+}
+
+// ═══════════════════════════════════════════════════════════
+//  SCÈNE PHASER
+// ═══════════════════════════════════════════════════════════
+
+class WorldScene extends Phaser.Scene {
+  constructor() { super({ key: 'WorldScene' }); }
+
+  // ──────────────────────────────────────────
+  //  PRELOAD
+  //  On génère le canvas atlas UNE SEULE FOIS
+  //  et on l'enregistre comme texture Phaser.
+  // ──────────────────────────────────────────
+  preload() {
+    // Construction du canvas tileset (toutes les tiles côte à côte)
+    const tilesetCanvas = buildTilesetCanvas();
+
+    // Enregistrement dans le cache de textures Phaser
+    // → ce canvas devient une texture GPU uploadée une seule fois
+    this.textures.addCanvas('tileset', tilesetCanvas);
+
+    // Génération des données de map
+    this.mapData = generateMapData();
+  }
+
+  // ──────────────────────────────────────────
+  //  CREATE
+  // ──────────────────────────────────────────
+  create() {
+    this._buildTilemap();
+    this._setupCamera();
+    this._setupInput();
+    this._buildDebugUI();
+    this._updateHUD();
+  }
+
+  // ──────────────────────────────────────────
+  //  TILEMAP — cœur de l'optimisation
+  // ──────────────────────────────────────────
+  _buildTilemap() {
+    // Destruction propre si régénération
+    if (this.map) this.map.destroy();
+
+    // 1. Création de la Tilemap depuis le tableau 2D
+    //    Phaser comprend que mapData[y][x] est l'index de tile
+    this.map = this.make.tilemap({
+      data:       this.mapData,
+      tileWidth:  TILE_SIZE,
+      tileHeight: TILE_SIZE,
+    });
+
+    // 2. Enregistrement du tileset atlas
+    //    Paramètres : (nom logique, clé texture, largeur tile, hauteur tile)
+    //    Phaser calcule automatiquement les UV de chaque tile :
+    //    tile N → rect { x: N*64, y: 0, w: 64, h: 64 } dans la texture
+    const tileset = this.map.addTilesetImage(
+      'tileset',   // nom logique (référencé dans les layers)
+      'tileset',   // clé de la texture dans le cache Phaser
+      TILE_SIZE,
+      TILE_SIZE,
+      0,           // margin (espace autour du tileset complet)
+      0            // spacing (espace entre chaque tile dans l'atlas)
+    );
+
+    // 3. Création du StaticTilemapLayer
+    //    → rendu WebGL ultra-optimisé en UN SEUL draw call
+    //    → frustum culling automatique (seules les tiles visibles sont rendues)
+    //    → les données sont uploadées en VBO GPU une seule fois
+    this.layer = this.map.createLayer(
+      0,        // index du layer dans la map (notre map n'en a qu'un)
+      tileset,  // le tileset à utiliser
+      0,        // position x dans le monde
+      0         // position y dans le monde
+    );
+
+    // 4. Définition des collisions (tiles solides)
+    //    Utile pour la physique du vaisseau plus tard
+    TILES.forEach(t => {
+      if (t.solid) this.map.setCollision(t.id);
+    });
+  }
+
+  // ──────────────────────────────────────────
+  //  CAMÉRA
+  // ──────────────────────────────────────────
+  _setupCamera() {
+    this.cameras.main
+      .setBounds(0, 0, MAP_W * TILE_SIZE, MAP_H * TILE_SIZE)
+      .setBackgroundColor(0x07090f)
+      .centerOn((MAP_W * TILE_SIZE) / 2, (MAP_H * TILE_SIZE) / 2)
+      .setZoom(1);
+  }
+
+  // ──────────────────────────────────────────
+  //  INPUT
+  // ──────────────────────────────────────────
+  _setupInput() {
+    this.cursors = this.input.keyboard.createCursorKeys();
+    this.keys    = this.input.keyboard.addKeys('W,A,S,D,Z,Q,R');
+
+    // Zoom molette
+    this.input.on('wheel', (_, __, ___, deltaY) => {
+      const cam  = this.cameras.main;
+      const zoom = Phaser.Math.Clamp(
+        cam.zoom - deltaY * 0.001,
+        CAM_ZOOM_MIN, CAM_ZOOM_MAX
+      );
+      cam.setZoom(zoom);
+      this._updateHUD();
+    });
+
+    // Zoom clavier
+    this.input.keyboard.on('keydown-PLUS',  () => this._zoom(+0.1));
+    this.input.keyboard.on('keydown-MINUS', () => this._zoom(-0.1));
+    this.input.keyboard.on('keydown-NUMPAD_ADD',      () => this._zoom(+0.1));
+    this.input.keyboard.on('keydown-NUMPAD_SUBTRACT', () => this._zoom(-0.1));
+
+    // Régénération
+    this.input.keyboard.on('keydown-R', () => this._regenerate());
+  }
+
+  _zoom(delta) {
+    const cam = this.cameras.main;
+    cam.setZoom(Phaser.Math.Clamp(cam.zoom + delta, CAM_ZOOM_MIN, CAM_ZOOM_MAX));
+    this._updateHUD();
+  }
+
+  // ──────────────────────────────────────────
+  //  UPDATE — appelé chaque frame
+  // ──────────────────────────────────────────
+  update(_time, delta) {
+    this._handleCamera(delta);
+    this._updateHUD();
+  }
+
+  _handleCamera(delta) {
+    const cam   = this.cameras.main;
+    const speed = (CAM_SPEED / cam.zoom) * (delta / 1000);
+    const { left, right, up, down } = this.cursors;
+    const { W, A, S, D, Z, Q }      = this.keys;
+
+    if (left.isDown  || A.isDown || Q.isDown) cam.scrollX -= speed;
+    if (right.isDown || D.isDown)             cam.scrollX += speed;
+    if (up.isDown    || W.isDown || Z.isDown) cam.scrollY -= speed;
+    if (down.isDown  || S.isDown)             cam.scrollY += speed;
+  }
+
+  // ──────────────────────────────────────────
+  //  UI DEBUG — affichage des métriques clés
+  // ──────────────────────────────────────────
+  _buildDebugUI() {
+    // Texte fixe (scrollFactor 0 = attaché à la caméra)
+    this.debugText = this.add.text(10, 10, '', {
+      fontSize:   '11px',
+      fill:       '#7af7ff',
+      fontFamily: 'Courier New',
+      backgroundColor: '#00000099',
+      padding: { x: 8, y: 6 },
+      lineSpacing: 4,
+    })
+    .setScrollFactor(0)
+    .setDepth(100);
+  }
+
+  _updateHUD() {
+    const cam       = this.cameras.main;
+    const tileX     = Math.floor(cam.scrollX / TILE_SIZE);
+    const tileY     = Math.floor(cam.scrollY / TILE_SIZE);
+    const visW      = Math.ceil(cam.width  / (TILE_SIZE * cam.zoom)) + 1;
+    const visH      = Math.ceil(cam.height / (TILE_SIZE * cam.zoom)) + 1;
+    const visTiles  = Math.min(visW * visH, MAP_W * MAP_H);
+    const totalTiles = MAP_W * MAP_H;
+
+    this.debugText.setText([
+      `Map      : ${MAP_W} × ${MAP_H} = ${totalTiles.toLocaleString()} tiles`,
+      `Tile     : ${TILE_SIZE}px × ${TILE_SIZE}px`,
+      `Monde    : ${(MAP_W * TILE_SIZE / 1000).toFixed(1)} × ${(MAP_H * TILE_SIZE / 1000).toFixed(1)} km`,
+      `─────────────────────────────`,
+      `Caméra   : tile (${tileX}, ${tileY})`,
+      `Zoom     : ${cam.zoom.toFixed(2)}×`,
+      `Visibles : ~${visTiles} tiles  (frustum culling)`,
+      `Draw call: 1  ← StaticTilemapLayer WebGL`,
+      `─────────────────────────────`,
+      `[ R ] Régénérer  [ +/- ] Zoom`,
+    ]);
+
+    // HUD externe
+    document.getElementById('hud-map').textContent   = `Map: ${MAP_W}×${MAP_H}`;
+    document.getElementById('hud-tiles').textContent = `Total: ${totalTiles.toLocaleString()} tiles`;
+    document.getElementById('hud-draw').textContent  = `Draw calls: 1 (WebGL batch)`;
+    document.getElementById('hud-cam').textContent   = `Zoom: ${cam.zoom.toFixed(2)}×`;
+  }
+
+  // ──────────────────────────────────────────
+  //  RÉGÉNÉRATION complète du monde
+  // ──────────────────────────────────────────
+  _regenerate() {
+    this.mapData = generateMapData();
+    this._buildTilemap();
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+//  LANCEMENT PHASER
+// ═══════════════════════════════════════════════════════════
+
+const game = new Phaser.Game({
+  type:            Phaser.WEBGL,   // WebGL → accélération GPU
+  width:           960,
+  height:          608,
+  parent:          'game-container',
+  backgroundColor: '#07090f',
+  antialias:       false,          // pixel-perfect
+  pixelArt:        true,
+  roundPixels:     true,
+  scene:           [WorldScene],
+});
+</script>
+</body>
+</html>

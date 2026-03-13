@@ -1,4 +1,4 @@
-import { LayerDefinition, WorldScene } from './WorldScene';
+import { WorldScene } from './WorldScene';
 import { CrackPlanetWG } from '../world-generator/CrackPlanetWG';
 import { AstroTileRenderer } from '../tile-renderer/themes/astro/AstroTileRenderer';
 import { DeepSpaceWG } from '../world-generator/DeepSpaceWG';
@@ -26,7 +26,7 @@ export class Level01 extends WorldScene {
         const dswg = new DeepSpaceWG(rng, 100, 100);
         const dstr = new DeepSpaceTileRenderer();
 
-        const md = this.generateMapData(tr, wg, [
+        const md = this.buildTileMap(tr, wg, [
             {
                 cell: 0,
                 tiles: [0],
@@ -48,7 +48,7 @@ export class Level01 extends WorldScene {
                 tiles: [4],
             },
         ]);
-        const dsmd = this.generateMapData(dstr, dswg, [
+        const dsmd = this.buildTileMap(dstr, dswg, [
             {
                 cell: 0,
                 tiles: [10, 11, 12, 13],
@@ -61,7 +61,7 @@ export class Level01 extends WorldScene {
         this.layerDefinitions = [
             {
                 zIndex: 10,
-                mapData: md,
+                tileMap: md,
                 texture: tr.buildTileset(),
                 tileSize: tr.tileSize,
                 tilesetWidth: wg.worldWidth,
@@ -70,7 +70,7 @@ export class Level01 extends WorldScene {
             },
             {
                 zIndex: 5,
-                mapData: dsmd,
+                tileMap: dsmd,
                 texture: dstr.buildTileset(),
                 tileSize: dstr.tileSize,
                 tilesetWidth: dswg.worldWidth,
@@ -82,12 +82,12 @@ export class Level01 extends WorldScene {
         super.create();
     }
 
-    generateMapData(
+    buildTileMap(
         tileRenderer: ITileRenderer,
         worldGenerator: IWorldGenerator,
         cellTiles: CellTile[]
     ): number[][] {
-        const cellMap = worldGenerator.generateMapData();
+        const cellMap = worldGenerator.generate();
         const cellTileRegistry = new Map<number, number[]>();
         cellTiles.forEach((ct: CellTile) => {
             cellTileRegistry.set(ct.cell, ct.tiles);

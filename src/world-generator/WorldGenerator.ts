@@ -1,43 +1,38 @@
-type NeighborCell = { dx: number; dy: number; value: number };
+type NeighborCell<T> = { dx: number; dy: number; value: T };
 
-export abstract class WordGenerator {
-    public readonly mapData: number[][] = [];
+export abstract class WordGenerator<T> {
+    public readonly cellMap: T[][] = [];
 
     protected constructor(
         public readonly worldWidth: number,
         public readonly worldHeight: number
     ) {
-        this.initMapData();
-    }
-
-    initMapData(): void {
-        this.mapData.splice(0, this.mapData.length);
-        for (let y = 0; y < this.worldHeight; ++y) {
-            const row: number[] = [];
-            for (let x = 0; x < this.worldWidth; ++x) {
-                row.push(0);
+        for (let y = 0; y < worldHeight; ++y) {
+            const row: T[] = [];
+            for (let x = 0; x < worldWidth; ++x) {
+                row.push(this.nullValue());
             }
-            this.mapData.push(row);
+            this.cellMap.push(row);
         }
     }
 
-    setCellValue(x: number, y: number, value: number): void {
-        if (y < this.mapData.length && x < this.mapData[y].length) {
-            this.mapData[y][x] = value;
+    setCellValue(x: number, y: number, value: T): void {
+        if (y < this.cellMap.length && x < this.cellMap[y].length) {
+            this.cellMap[y][x] = value;
         }
     }
 
-    getCellValue(x: number, y: number): number {
-        if (y < this.mapData.length && x < this.mapData[y].length) {
-            return this.mapData[y][x];
+    getCellValue(x: number, y: number): T | undefined {
+        if (y < this.cellMap.length && x < this.cellMap[y].length) {
+            return this.cellMap[y][x];
         } else {
-            return -1;
+            return undefined;
         }
     }
 
-    getNeighbors(x: number, y: number): NeighborCell[] {
-        const raw = this.mapData;
-        const neighbors: NeighborCell[] = [];
+    getNeighbors(x: number, y: number): NeighborCell<T>[] {
+        const raw = this.cellMap;
+        const neighbors: NeighborCell<T>[] = [];
         for (let dy = -1; dy <= 1; dy++) {
             for (let dx = -1; dx <= 1; dx++) {
                 const ny = y + dy,
@@ -50,13 +45,24 @@ export abstract class WordGenerator {
         return neighbors;
     }
 
-    walkMapData(walker: (x: number, y: number, value: number) => number) {
-        for (let y = 0; y < this.worldHeight; ++y) {
-            for (let x = 0; x < this.worldWidth; ++x) {
-                this.setCellValue(x, y, walker(x, y, this.getCellValue(x, y)));
+    walkCells(walker: (x: number, y: number, value: T) => T) {
+        for (let y = 0, h = this.worldHeight; y < h; ++y) {
+            for (let x = 0, w = this.worldWidth; x < w; ++x) {
+                const value = this.getCellValue(x, y);
+                if (value !== undefined) {
+                    this.setCellValue(x, y, walker(x, y, value));
+                }
             }
         }
     }
 
-    abstract generateMapData(): void;
+    /**
+     * Return a null value of type T
+     */
+    abstract nullValue(): T;
+
+    /**
+     * Start generating world, filling the cell map with T values
+     */
+    abstract generate(): void;
 }

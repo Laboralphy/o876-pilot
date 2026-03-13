@@ -7,7 +7,7 @@ type AnyLayer =
 
 export type LayerDefinition = {
     zIndex: number;
-    mapData: number[][]; // The real map data
+    tileMap: number[][]; // The real map data
     texture: HTMLCanvasElement; // The tileset image
     tileSize: number; // size of a tile in pixels
     tilesetWidth: number; // number of tiles in a row
@@ -67,18 +67,19 @@ export abstract class WorldScene extends Phaser.Scene {
 
     private _buildLayer(n: number, ld: LayerDefinition) {
         const idTileset = 'tileset-' + n.toString();
-        this.textures.addCanvas(idTileset, ld.texture);
+        const idTexture = 'texture-' + n.toString();
+        this.textures.addCanvas(idTexture, ld.texture);
 
         // Tilemap
         const tilemap = this.make.tilemap({
-            data: ld.mapData,
+            data: ld.tileMap,
             tileWidth: ld.tileSize,
             tileHeight: ld.tileSize,
         });
 
         const tileset = tilemap.addTilesetImage(
             idTileset, // logical name, used by layers to render image
-            idTileset, // texture key in phaser cache
+            idTexture, // texture key in phaser cache
             ld.tileSize,
             ld.tileSize,
             0, // tile margin
@@ -182,11 +183,7 @@ export abstract class WorldScene extends Phaser.Scene {
     _updateHUD() {
         const cam = this.cameras.main;
         if (this.debugText) {
-            this.debugText.setText([
-                `Cam: ${cam.scrollX.toFixed(0)}, ${cam.scrollY.toFixed(0)}`,
-                `Bounds: ${cam.getBounds()}`,
-                `World: ${this.worldWidth}×${this.worldHeight}`,
-            ]);
+            this.debugText.setText([`Cam: ${cam.scrollX.toFixed(0)}, ${cam.scrollY.toFixed(0)}`]);
         }
 
         // HUD externe
@@ -210,6 +207,10 @@ export abstract class WorldScene extends Phaser.Scene {
         }
 
         this.layers.delete(id);
+        const idTexture = 'texture-' + id.toString();
+        if (this.textures.exists(idTexture)) {
+            this.textures.remove(idTexture);
+        }
     }
 
     protected _destroyTilemap(id: number): void {
@@ -223,12 +224,6 @@ export abstract class WorldScene extends Phaser.Scene {
             if (layer instanceof Phaser.Tilemaps.TilemapLayer && layer.tilemap === tilemap) {
                 this._destroyLayer(layerId);
             }
-            const tilesetTextureKeys = tilemap.tilesets.map((ts) => ts.image?.key).filter(Boolean);
-            tilesetTextureKeys.forEach((key) => {
-                if (typeof key === 'string' && this.textures.exists(key)) {
-                    this.textures.remove(key);
-                }
-            });
         });
 
         tilemap.destroy(); // libère les données MapData du cache interne
@@ -236,7 +231,7 @@ export abstract class WorldScene extends Phaser.Scene {
     }
 
     /**
-     * Destroy all layers and tilemasps.
+     * Destroy all layers and tilemaps.
      * This is called automatically when the scene is destroyed.
      * @protected
      */

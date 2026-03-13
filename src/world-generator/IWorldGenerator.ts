@@ -1,3 +1,3 @@
 export interface IWorldGenerator {
-    generateMapData(): number[][];
+    generate(): number[][];
 }
