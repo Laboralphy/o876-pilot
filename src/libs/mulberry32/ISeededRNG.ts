@@ -3,7 +3,7 @@ export interface ISeededRNG {
     next(): number;
     /** Returns a float in [min, max) */
     nextFloat(min: number, max: number): number;
-    /** Returns an integer in [min, max] (inclusive) */
+    /** Returns an integer in [min, max - 1] */
     nextInt(min: number, max: number): number;
     /** Returns true with given probability (0–1) */
     nextBool(probability?: number): boolean;

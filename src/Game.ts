@@ -1,4 +1,4 @@
-import { Level01 } from './world-scene/Level01';
+import { Level01 } from './scenes/Level01';
 
 export class Game extends Phaser.Game {
     constructor() {

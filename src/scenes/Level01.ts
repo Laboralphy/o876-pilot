@@ -1,4 +1,4 @@
-import { WorldScene } from './WorldScene';
+import { WorldScene } from '../world-scene/WorldScene';
 import { CrackPlanetWG } from '../world-generator/CrackPlanetWG';
 import { AstroTileRenderer } from '../tile-renderer/themes/astro/AstroTileRenderer';
 import { DeepSpaceWG } from '../world-generator/DeepSpaceWG';
@@ -10,9 +10,11 @@ import { ITileRenderer } from '../tile-renderer/ITileRenderer';
 type CellTile = {
     cell: number;
     tiles: number[];
+    animations?: string[];
 };
 
 export class Level01 extends WorldScene {
+    private rng = createRNGFromString('level-1');
     constructor() {
         super({
             key: 'Level01',
@@ -20,10 +22,9 @@ export class Level01 extends WorldScene {
     }
 
     create() {
-        const rng = createRNGFromString('level-1');
-        const wg = new CrackPlanetWG(rng, 200, 200);
+        const wg = new CrackPlanetWG(this.rng, 200, 200);
         const tr = new AstroTileRenderer();
-        const dswg = new DeepSpaceWG(rng, 100, 100);
+        const dswg = new DeepSpaceWG(this.rng, 100, 100);
         const dstr = new DeepSpaceTileRenderer();
 
         const md = this.buildTileMap(tr, wg, [
@@ -45,7 +46,8 @@ export class Level01 extends WorldScene {
             },
             {
                 cell: 4,
-                tiles: [4],
+                tiles: [40],
+                animations: ['space-anomaly'],
             },
         ]);
         const dsmd = this.buildTileMap(dstr, dswg, [
@@ -60,6 +62,7 @@ export class Level01 extends WorldScene {
         ]);
         this.layerDefinitions = [
             {
+                key: 'foreground',
                 zIndex: 10,
                 tileMap: md,
                 texture: tr.buildTileset(),
@@ -67,8 +70,18 @@ export class Level01 extends WorldScene {
                 tilesetWidth: wg.worldWidth,
                 tilesetHeight: wg.worldHeight,
                 scrollFactor: 1,
+                animations: [
+                    {
+                        key: 'space-anomaly',
+                        duration: 1000,
+                        frames: [40, 41, 42, 43],
+                        repeat: Infinity,
+                        yoyo: true,
+                    },
+                ],
             },
             {
+                key: 'deepspace',
                 zIndex: 5,
                 tileMap: dsmd,
                 texture: dstr.buildTileset(),
@@ -76,6 +89,7 @@ export class Level01 extends WorldScene {
                 tilesetWidth: dswg.worldWidth,
                 tilesetHeight: dswg.worldHeight,
                 scrollFactor: 0.5,
+                animations: [],
             },
         ];
 
@@ -84,25 +98,27 @@ export class Level01 extends WorldScene {
 
     buildTileMap(
         tileRenderer: ITileRenderer,
-        worldGenerator: IWorldGenerator,
+        worldGenerator: IWorldGenerator<number>,
         cellTiles: CellTile[]
-    ): number[][] {
+    ): { tileMap: number[][]; animatedTiles: Map<string, { x: number; y: number }[]> } {
         const cellMap = worldGenerator.generate();
         const cellTileRegistry = new Map<number, number[]>();
+        const animatedTileRegistry = new Map<string, { x: number; y: number }[]>();
         cellTiles.forEach((ct: CellTile) => {
             cellTileRegistry.set(ct.cell, ct.tiles);
         });
 
+        const animatedTiles = new Map<string, { x: number; y: number }[]>();
         const tileIndexRegistry = tileRenderer.getTileIndexRegistry();
-        return cellMap.map((row) =>
+        const tileMap = cellMap.map((row) =>
             row.map((cell) => {
                 const cellTiles = cellTileRegistry.get(cell) ?? [];
                 const tileId =
-                    cellTiles.length > 0
-                        ? cellTiles[Math.floor(Math.random() * cellTiles.length)]
-                        : 0;
+                    cellTiles.length > 0 ? cellTiles[this.rng.nextInt(0, cellTiles.length)] : 0;
                 return tileIndexRegistry.get(tileId) ?? 0;
             })
         );
+
+        return { tileMap, animatedTiles };
     }
 }

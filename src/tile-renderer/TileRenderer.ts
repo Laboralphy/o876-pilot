@@ -1,15 +1,7 @@
 import { ITileRenderer } from './ITileRenderer';
 
-export type AnimationDefinition = {
-    frameCount: number;
-    duration: number;
-    loopType: number;
-    interpolation: number;
-};
-
 export type TileDefinition = {
     id: number;
-    animation?: AnimationDefinition;
 };
 
 export abstract class TileRenderer<T extends TileDefinition> implements ITileRenderer {

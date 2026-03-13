@@ -1,8 +1,8 @@
-import { drawSpreadStars } from './renderers/draw-spread-stars';
-import { drawNebula } from './renderers/draw-nebula';
+import { drawSpreadStars } from './drawing-functions/draw-spread-stars';
+import { drawNebula } from './drawing-functions/draw-nebula';
 import { TileRenderer } from '../../TileRenderer';
 import { AstroTileDefinition } from './AstroTileDefinition';
-import { IAstroRenderer } from './IAstroRenderer';
+import { IDrawingFunction } from './IDrawingFunction';
 import { createRNGFromString } from '../../../libs/mulberry32';
 
 const TILES: AstroTileDefinition[] = [
@@ -57,7 +57,7 @@ const TILES: AstroTileDefinition[] = [
 ];
 
 export class DeepSpaceTileRenderer extends TileRenderer<AstroTileDefinition> {
-    renderers: Record<string, IAstroRenderer> = {
+    renderers: Record<string, IDrawingFunction> = {
         drawSpreadStars,
         drawNebula,
     };

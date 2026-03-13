@@ -8,6 +8,7 @@ export function drawSpaceAnomaly(
     tile: AstroTileDefinition,
     tileSize: number
 ) {
+    const variation = tile.variation ?? 0;
     ctx.fillStyle = hexstr(tile.color);
     ctx.fillRect(0, 0, tileSize, tileSize);
     // ANOMALY — anneaux concentriques
@@ -18,7 +19,7 @@ export function drawSpaceAnomaly(
         ctx.strokeStyle = hexstr(tile.accent) + alpha;
         ctx.lineWidth = 2.5;
         ctx.beginPath();
-        ctx.arc(tileSize / 2, tileSize / 2, r, 0, Math.PI * 2);
+        ctx.arc(tileSize / 2, tileSize / 2, r * variation, 0, Math.PI * 2);
         ctx.stroke();
     }
     const gAno = ctx.createRadialGradient(
@@ -33,6 +34,6 @@ export function drawSpaceAnomaly(
     gAno.addColorStop(1, '#5a1a8a00');
     ctx.fillStyle = gAno;
     ctx.beginPath();
-    ctx.arc(tileSize / 2, tileSize / 2, 18, 0, Math.PI * 2);
+    ctx.arc(tileSize / 2, tileSize / 2, 18 * variation, 0, Math.PI * 2);
     ctx.fill();
 }

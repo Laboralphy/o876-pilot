@@ -1,6 +1,8 @@
+import { IWorldGenerator } from './IWorldGenerator';
+
 type NeighborCell<T> = { dx: number; dy: number; value: T };
 
-export abstract class WordGenerator<T> {
+export abstract class WordGenerator<T> implements IWorldGenerator<T> {
     public readonly cellMap: T[][] = [];
 
     protected constructor(
@@ -64,5 +66,5 @@ export abstract class WordGenerator<T> {
     /**
      * Start generating world, filling the cell map with T values
      */
-    abstract generate(): void;
+    abstract generate(): T[][];
 }

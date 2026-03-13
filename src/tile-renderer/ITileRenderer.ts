@@ -1,3 +1,5 @@
+import { AnimationRunner } from '../world-scene/AnimationRunner';
+
 export interface ITileRenderer {
     get tileSize(): number;
     buildTileset(): HTMLCanvasElement;

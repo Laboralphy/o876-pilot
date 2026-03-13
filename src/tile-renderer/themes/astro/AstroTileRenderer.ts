@@ -1,10 +1,10 @@
-import { drawCrackedBlock } from './renderers/draw-cracked-block';
-import { drawAsteroid } from './renderers/draw-asteroid';
-import { drawGoldCrystal } from './renderers/draw-gold-crystal';
-import { drawSpaceAnomaly } from './renderers/draw-space-anomaly';
+import { drawCrackedBlock } from './drawing-functions/draw-cracked-block';
+import { drawAsteroid } from './drawing-functions/draw-asteroid';
+import { drawGoldCrystal } from './drawing-functions/draw-gold-crystal';
+import { drawSpaceAnomaly } from './drawing-functions/draw-space-anomaly';
 import { TileRenderer } from '../../TileRenderer';
 import { AstroTileDefinition } from './AstroTileDefinition';
-import { IAstroRenderer } from './IAstroRenderer';
+import { IDrawingFunction } from './IDrawingFunction';
 import { createRNGFromString } from '../../../libs/mulberry32';
 
 const TILES: AstroTileDefinition[] = [
@@ -69,15 +69,37 @@ const TILES: AstroTileDefinition[] = [
         accent: 0xc8a020,
     },
     {
-        id: 4,
+        id: 40,
         renderer: 'drawSpaceAnomaly',
         color: 0x2a0a4a,
         accent: 0x5a1a8a,
+        variation: 1,
+    },
+    {
+        id: 41,
+        renderer: 'drawSpaceAnomaly',
+        color: 0x2a0a4a,
+        accent: 0x5a1a8a,
+        variation: 0.9,
+    },
+    {
+        id: 42,
+        renderer: 'drawSpaceAnomaly',
+        color: 0x2a0a4a,
+        accent: 0x5a1a8a,
+        variation: 0.85,
+    },
+    {
+        id: 43,
+        renderer: 'drawSpaceAnomaly',
+        color: 0x2a0a4a,
+        accent: 0x5a1a8a,
+        variation: 0.9,
     },
 ];
 
 export class AstroTileRenderer extends TileRenderer<AstroTileDefinition> {
-    renderers: Record<string, IAstroRenderer> = {
+    renderers: Record<string, IDrawingFunction> = {
         drawCrackedBlock,
         drawAsteroid,
         drawGoldCrystal,

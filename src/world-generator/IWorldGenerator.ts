@@ -1,3 +1,3 @@
-export interface IWorldGenerator {
-    generate(): number[][];
+export interface IWorldGenerator<T> {
+    generate(): T[][];
 }

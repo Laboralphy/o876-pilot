@@ -27,7 +27,7 @@ export function createRNG(seed: number): ISeededRNG {
         },
 
         nextInt(min: number, max: number): number {
-            return Math.floor(min + mulberry32() * (max - min + 1));
+            return Math.floor(min + mulberry32() * (max - min));
         },
 
         nextBool(probability = 0.5): boolean {

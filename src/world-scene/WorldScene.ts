@@ -1,11 +1,16 @@
 import Phaser from 'phaser';
+import { AnimationDefinition, AnimationRunner } from './AnimationRunner';
 
 type AnyLayer =
     | Phaser.GameObjects.Layer
     | Phaser.Tilemaps.TilemapLayer
     | Phaser.GameObjects.TileSprite;
 
-export type LayerDefinition = {
+/**
+ * This type of layer is dedicated to tilemaps
+ */
+export type TileMapLayerDefinition = {
+    key: string;
     zIndex: number;
     tileMap: number[][]; // The real map data
     texture: HTMLCanvasElement; // The tileset image
@@ -13,6 +18,7 @@ export type LayerDefinition = {
     tilesetWidth: number; // number of tiles in a row
     tilesetHeight: number; // number of tiles in a column
     scrollFactor: number; // 1 = scroll with camera, 0 = no scroll, 0.5 = parallax scrolling, all values accepted
+    animations: AnimationDefinition[];
 };
 
 export type WorldSceneOptions = {
@@ -34,10 +40,16 @@ type Controls = {
     down: Phaser.Input.Keyboard.Key;
 };
 
+class AnimationRegistry {
+    public readonly tiles: { x: number; y: number }[] = [];
+    constructor(public readonly runner: AnimationRunner) {}
+}
+
 export abstract class WorldScene extends Phaser.Scene {
-    protected readonly tilemaps = new Map<number, Phaser.Tilemaps.Tilemap>();
-    protected readonly layers = new Map<number, AnyLayer>();
-    protected layerDefinitions: LayerDefinition[] = [];
+    protected readonly tilemaps = new Map<string, Phaser.Tilemaps.Tilemap>();
+    protected readonly layers = new Map<string, AnyLayer>();
+    protected readonly animations = new Map<string, Map<string, AnimationRegistry>>();
+    protected layerDefinitions: TileMapLayerDefinition[] = [];
     protected worldWidth: number = 0; // in pixels
     protected worldHeight: number = 0; // in pixels
     protected controls: Controls | undefined = undefined;
@@ -65,9 +77,56 @@ export abstract class WorldScene extends Phaser.Scene {
         };
     }
 
-    private _buildLayer(n: number, ld: LayerDefinition) {
-        const idTileset = 'tileset-' + n.toString();
-        const idTexture = 'texture-' + n.toString();
+    private _declareAnimationRunner(idLayer: string, animationDefinition: AnimationDefinition) {
+        if (!this.animations.has(idLayer)) {
+            this.animations.set(idLayer, new Map<string, AnimationRegistry>());
+        }
+        this.animations
+            .get(idLayer)!
+            .set(
+                animationDefinition.key,
+                new AnimationRegistry(new AnimationRunner(animationDefinition))
+            );
+    }
+
+    private _setAnimatedTile(idLayer: string, x: number, y: number, animationKey: string) {
+        const l = this.animations.get(idLayer);
+        if (!l) {
+            throw new Error(`Layer ${idLayer} has no declared animations`);
+        }
+        const ar = l.get(animationKey);
+        if (!ar) {
+            throw new Error(`Animation ${animationKey} not declared for layer ${idLayer}`);
+        }
+        const tile = ar.tiles.find((t) => t.x === x && t.y === y);
+        if (!tile) {
+            ar.tiles.push({ x, y });
+        }
+    }
+
+    private _animateTiles(delta: number) {
+        for (const [idLayer, animationRegistries] of this.animations.entries()) {
+            const layer = this.layers.get(idLayer);
+            if (layer && layer instanceof Phaser.Tilemaps.TilemapLayer) {
+                for (const animationRegistry of animationRegistries.values()) {
+                    const animationRunner = animationRegistry.runner;
+                    animationRunner.update(delta);
+                    const frame = animationRunner.frame;
+                    for (const tile of animationRegistry.tiles) {
+                        layer.putTileAt(frame, tile.x, tile.y);
+                    }
+                }
+            }
+        }
+    }
+
+    private _buildTileMapLayer(ld: TileMapLayerDefinition) {
+        const idLayer = ld.key;
+        if (this.layers.has(idLayer)) {
+            throw new Error(`Layer already exists : ${idLayer}`);
+        }
+        const idTileset = 'tileset-' + idLayer.toString();
+        const idTexture = 'texture-' + idLayer.toString();
         this.textures.addCanvas(idTexture, ld.texture);
 
         // Tilemap
@@ -75,6 +134,10 @@ export abstract class WorldScene extends Phaser.Scene {
             data: ld.tileMap,
             tileWidth: ld.tileSize,
             tileHeight: ld.tileSize,
+        });
+
+        ld.animations.forEach((definition) => {
+            this._declareAnimationRunner(idLayer, definition);
         });
 
         const tileset = tilemap.addTilesetImage(
@@ -90,8 +153,8 @@ export abstract class WorldScene extends Phaser.Scene {
             throw new Error('Could not build tileset');
         }
 
-        this._destroyTilemap(n);
-        this.tilemaps.set(n, tilemap);
+        this._destroyTilemap(idLayer);
+        this.tilemaps.set(idLayer, tilemap);
 
         // Layer
         const layer = tilemap.createLayer(
@@ -105,7 +168,7 @@ export abstract class WorldScene extends Phaser.Scene {
         }
         layer.setScrollFactor(ld.scrollFactor);
         layer.setDepth(ld.zIndex);
-        this.layers.set(n, layer);
+        this.layers.set(idLayer, layer);
     }
 
     private _setupCamera() {
@@ -117,7 +180,7 @@ export abstract class WorldScene extends Phaser.Scene {
     }
 
     private _setupInput() {
-        // Zoom molette
+        // Zoom mousewheel
         // this.input.on('wheel', (_, __, ___, deltaY) => {
         //     const cam = this.cameras.main;
         //     const zoom = Phaser.Math.Clamp(cam.zoom - deltaY * 0.001, CAM_ZOOM_MIN, CAM_ZOOM_MAX);
@@ -166,7 +229,7 @@ export abstract class WorldScene extends Phaser.Scene {
     }
 
     _buildDebugUI() {
-        // Texte fixe (scrollFactor 0 = attaché à la caméra)
+        // Fixed text (scrollFactor 0 = camera bound)
         this.debugText = this.add
             .text(10, 10, '', {
                 fontSize: '11px',
@@ -194,40 +257,49 @@ export abstract class WorldScene extends Phaser.Scene {
         // document.getElementById('hud-cam').textContent = `Zoom: ${cam.zoom.toFixed(2)}×`;
     }
 
-    protected _destroyLayer(id: number): void {
-        const layer = this.layers.get(id);
-        if (!layer) return;
+    /**
+     * Can be used to destroy any layer. Not only layer builts via _buildTileMapLayer
+     * @param idLayer
+     * @protected
+     */
+    protected _destroyLayer(idLayer: string): void {
+        const layer = this.layers.get(idLayer);
+        if (!layer) {
+            throw new Error(`Layer ${idLayer} does not exist`);
+        }
 
         if (layer instanceof Phaser.Tilemaps.TilemapLayer) {
-            layer.destroy(); // retire du display list + libère la géométrie tilemap
+            console.info('Destroy layer: ' + idLayer);
+            layer.destroy(); // remove layer from the display list and discard tilemap geometry
+            this._destroyTilemap(idLayer);
         } else if (layer instanceof Phaser.GameObjects.TileSprite) {
-            layer.destroy(); // retire du display list + libère le RenderTexture interne
+            layer.destroy(); // remove layer from the display list and free inner texture
         } else {
+            // probably a Phaser.GameObjects.Layer
             layer.destroy(true);
         }
 
-        this.layers.delete(id);
-        const idTexture = 'texture-' + id.toString();
+        this.layers.delete(idLayer);
+        const idTexture = 'texture-' + idLayer.toString();
         if (this.textures.exists(idTexture)) {
+            console.info('Remove texture: ' + idTexture + ' from cache');
             this.textures.remove(idTexture);
         }
     }
 
-    protected _destroyTilemap(id: number): void {
-        const tilemap = this.tilemaps.get(id);
+    /**
+     *
+     * @param idLayer
+     * @protected
+     */
+    protected _destroyTilemap(idLayer: string): void {
+        console.info('Destroy tilemap: ' + idLayer);
+        const tilemap = this.tilemaps.get(idLayer);
         if (!tilemap) {
             return;
         }
-
-        // First destroy associated TilemapLayers
-        this.layers.forEach((layer, layerId) => {
-            if (layer instanceof Phaser.Tilemaps.TilemapLayer && layer.tilemap === tilemap) {
-                this._destroyLayer(layerId);
-            }
-        });
-
-        tilemap.destroy(); // libère les données MapData du cache interne
-        this.tilemaps.delete(id);
+        tilemap.destroy(); // free tile map from the inner cache
+        this.tilemaps.delete(idLayer);
     }
 
     /**
@@ -236,15 +308,18 @@ export abstract class WorldScene extends Phaser.Scene {
      * @protected
      */
     protected _destroyAllResources(): void {
-        [...this.layers.keys()].forEach((id) => this._destroyLayer(id));
-        [...this.tilemaps.keys()].forEach((id) => this._destroyTilemap(id));
+        console.info('Destroy all resources');
+        for (const id of this.layers.keys()) {
+            // Destroy layer. Will also destroy any associated tilemap or texture
+            this._destroyLayer(id);
+        }
     }
 
     protected _createResources(): void {
         const { width, height } = this._computeWorldSize();
         this.worldWidth = width;
         this.worldHeight = height;
-        this.layerDefinitions.forEach((ld, n) => this._buildLayer(n, ld));
+        this.layerDefinitions.forEach((ld) => this._buildTileMapLayer(ld));
     }
 
     create() {
@@ -260,6 +335,7 @@ export abstract class WorldScene extends Phaser.Scene {
     preload() {}
 
     update(time: number, delta: number) {
+        this._animateTiles(delta);
         this._handleCamera(delta);
         this._updateHUD();
     }
