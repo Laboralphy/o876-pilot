@@ -13,18 +13,18 @@ export function drawCrackedBlock(
     ctx.fillStyle = hexstr(tile.accent);
     for (let i = 0; i < 6; i++) {
         ctx.fillRect(
-            rng.nextInt(0, tileSize) * 0.55 + tileSize * 0.1,
-            rng.nextInt(0, tileSize) * 0.55 + tileSize * 0.1,
-            rng.nextInt(0, 22) + 10,
-            rng.nextInt(0, 16) + 8
+            rng.nextInt(0, tileSize - 1) * 0.55 + tileSize * 0.1,
+            rng.nextInt(0, tileSize - 1) * 0.55 + tileSize * 0.1,
+            rng.nextInt(10, 32),
+            rng.nextInt(8, 24)
         );
     }
     ctx.strokeStyle = hexstr(tile.color) + 'bb';
     ctx.lineWidth = 1;
     for (let i = 0; i < 4; i++) {
         ctx.beginPath();
-        ctx.moveTo(rng.nextInt(0, tileSize), rng.nextInt(0, tileSize));
-        ctx.lineTo(rng.nextInt(0, tileSize), rng.nextInt(0, tileSize));
+        ctx.moveTo(rng.nextInt(0, tileSize - 1), rng.nextInt(0, tileSize - 1));
+        ctx.lineTo(rng.nextInt(0, tileSize - 1), rng.nextInt(0, tileSize - 1));
         ctx.stroke();
     }
 }

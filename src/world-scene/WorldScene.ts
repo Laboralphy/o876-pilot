@@ -13,6 +13,7 @@ export type TileMapLayerDefinition = {
     key: string;
     zIndex: number;
     tileMap: number[][]; // The real map data
+    animatedTiles: Record<string, { x: number; y: number }[]>;
     texture: HTMLCanvasElement; // The tileset image
     tileSize: number; // size of a tile in pixels
     tilesetWidth: number; // number of tiles in a row

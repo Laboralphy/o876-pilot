@@ -6,16 +6,24 @@ export abstract class WordGenerator<T> implements IWorldGenerator<T> {
     public readonly cellMap: T[][] = [];
 
     protected constructor(
-        public readonly worldWidth: number,
-        public readonly worldHeight: number
+        protected readonly worldWidth: number,
+        protected readonly worldHeight: number
     ) {
         for (let y = 0; y < worldHeight; ++y) {
             const row: T[] = [];
             for (let x = 0; x < worldWidth; ++x) {
-                row.push(this.nullValue());
+                row.push(this.nullCell());
             }
             this.cellMap.push(row);
         }
+    }
+
+    get width(): number {
+        return this.worldWidth;
+    }
+
+    get height(): number {
+        return this.worldHeight;
     }
 
     setCellValue(x: number, y: number, value: T): void {
@@ -61,7 +69,7 @@ export abstract class WordGenerator<T> implements IWorldGenerator<T> {
     /**
      * Return a null value of type T
      */
-    abstract nullValue(): T;
+    abstract nullCell(): T;
 
     /**
      * Start generating world, filling the cell map with T values

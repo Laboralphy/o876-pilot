@@ -30,7 +30,7 @@ export class WeightedRandomCells extends WordGenerator<number> {
         );
     }
 
-    nullValue() {
+    nullCell() {
         return 0;
     }
 

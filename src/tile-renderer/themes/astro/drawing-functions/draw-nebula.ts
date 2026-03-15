@@ -27,7 +27,7 @@ export function drawNebula(
     ctx.fillStyle = '#ffffffaa';
     for (let i = 0; i < 5; i++) {
         ctx.beginPath();
-        ctx.arc(rng.nextInt(0, tileSize), rng.nextInt(0, tileSize), 0.7, 0, Math.PI * 2);
+        ctx.arc(rng.nextInt(0, tileSize - 1), rng.nextInt(0, tileSize - 1), 0.7, 0, Math.PI * 2);
         ctx.fill();
     }
 }

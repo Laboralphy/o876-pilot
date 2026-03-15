@@ -14,14 +14,14 @@ export function drawSpreadStars(
     for (let i = 0; i < 8; i++) {
         const r = Math.random() * 1.4 + 0.3;
         ctx.beginPath();
-        ctx.arc(rng.nextInt(0, tileSize), rng.nextInt(0, tileSize), r, 0, Math.PI * 2);
+        ctx.arc(rng.nextInt(0, tileSize - 1), rng.nextInt(0, tileSize - 1), r, 0, Math.PI * 2);
         ctx.fill();
     }
     // 1 étoile brillante occasionnelle
     if (Math.random() < 0.3) {
         ctx.fillStyle = '#ffffffcc';
         ctx.beginPath();
-        ctx.arc(rng.nextInt(0, tileSize), rng.nextInt(0, tileSize), 1.2, 0, Math.PI * 2);
+        ctx.arc(rng.nextInt(0, tileSize - 1), rng.nextInt(0, tileSize - 1), 1.2, 0, Math.PI * 2);
         ctx.fill();
     }
 }
