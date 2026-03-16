@@ -1,18 +1,18 @@
 import { IWorldGenerator } from './IWorldGenerator';
 
-type NeighborCell<T> = { dx: number; dy: number; value: T };
+type NeighborCell = { dx: number; dy: number; value: number };
 
-export abstract class WordGenerator<T> implements IWorldGenerator<T> {
-    public readonly cellMap: T[][] = [];
+export abstract class WordGenerator implements IWorldGenerator {
+    public readonly cellMap: number[][] = [];
 
     protected constructor(
         protected readonly worldWidth: number,
         protected readonly worldHeight: number
     ) {
         for (let y = 0; y < worldHeight; ++y) {
-            const row: T[] = [];
+            const row: number[] = [];
             for (let x = 0; x < worldWidth; ++x) {
-                row.push(this.nullCell());
+                row.push(0);
             }
             this.cellMap.push(row);
         }
@@ -26,13 +26,13 @@ export abstract class WordGenerator<T> implements IWorldGenerator<T> {
         return this.worldHeight;
     }
 
-    setCellValue(x: number, y: number, value: T): void {
+    setCellValue(x: number, y: number, value: number): void {
         if (y < this.cellMap.length && x < this.cellMap[y].length) {
             this.cellMap[y][x] = value;
         }
     }
 
-    getCellValue(x: number, y: number): T | undefined {
+    getCellValue(x: number, y: number): number | undefined {
         if (y < this.cellMap.length && x < this.cellMap[y].length) {
             return this.cellMap[y][x];
         } else {
@@ -40,9 +40,9 @@ export abstract class WordGenerator<T> implements IWorldGenerator<T> {
         }
     }
 
-    getNeighbors(x: number, y: number): NeighborCell<T>[] {
+    getNeighbors(x: number, y: number): NeighborCell[] {
         const raw = this.cellMap;
-        const neighbors: NeighborCell<T>[] = [];
+        const neighbors: NeighborCell[] = [];
         for (let dy = -1; dy <= 1; dy++) {
             for (let dx = -1; dx <= 1; dx++) {
                 const ny = y + dy,
@@ -55,7 +55,7 @@ export abstract class WordGenerator<T> implements IWorldGenerator<T> {
         return neighbors;
     }
 
-    walkCells(walker: (x: number, y: number, value: T) => T) {
+    walkCells(walker: (x: number, y: number, value: number) => number) {
         for (let y = 0, h = this.worldHeight; y < h; ++y) {
             for (let x = 0, w = this.worldWidth; x < w; ++x) {
                 const value = this.getCellValue(x, y);
@@ -67,12 +67,7 @@ export abstract class WordGenerator<T> implements IWorldGenerator<T> {
     }
 
     /**
-     * Return a null value of type T
+     * Start generating world, filling the cell map with number values
      */
-    abstract nullCell(): T;
-
-    /**
-     * Start generating world, filling the cell map with T values
-     */
-    abstract generate(): T[][];
+    abstract generate(): number[][];
 }

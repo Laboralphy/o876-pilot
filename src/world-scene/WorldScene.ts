@@ -6,6 +6,8 @@ type AnyLayer =
     | Phaser.Tilemaps.TilemapLayer
     | Phaser.GameObjects.TileSprite;
 
+export type CoordinateList = { x: number; y: number }[];
+
 /**
  * This type of layer is dedicated to tilemaps
  */
@@ -13,7 +15,7 @@ export type TileMapLayerDefinition = {
     key: string;
     zIndex: number;
     tileMap: number[][]; // The real map data
-    animatedTiles: Record<string, { x: number; y: number }[]>;
+    animatedTiles: Record<string, CoordinateList>;
     texture: HTMLCanvasElement; // The tileset image
     tileSize: number; // size of a tile in pixels
     tilesetWidth: number; // number of tiles in a row
@@ -42,7 +44,7 @@ type Controls = {
 };
 
 class AnimationRegistry {
-    public readonly tiles: { x: number; y: number }[] = [];
+    public readonly tiles: CoordinateList = [];
     constructor(public readonly runner: AnimationRunner) {}
 }
 
@@ -128,6 +130,8 @@ export abstract class WorldScene extends Phaser.Scene {
         }
         const idTileset = 'tileset-' + idLayer.toString();
         const idTexture = 'texture-' + idLayer.toString();
+
+        // Texture
         this.textures.addCanvas(idTexture, ld.texture);
 
         // Tilemap
@@ -137,6 +141,7 @@ export abstract class WorldScene extends Phaser.Scene {
             tileHeight: ld.tileSize,
         });
 
+        // Animation declaration
         ld.animations.forEach((definition) => {
             this._declareAnimationRunner(idLayer, definition);
         });
@@ -156,6 +161,13 @@ export abstract class WorldScene extends Phaser.Scene {
 
         this._destroyTilemap(idLayer);
         this.tilemaps.set(idLayer, tilemap);
+
+        // Animated Tiles
+        for (const [animationKey, coordinateList] of Object.entries(ld.animatedTiles)) {
+            for (const { x, y } of coordinateList) {
+                this._setAnimatedTile(idLayer, x, y, animationKey);
+            }
+        }
 
         // Layer
         const layer = tilemap.createLayer(

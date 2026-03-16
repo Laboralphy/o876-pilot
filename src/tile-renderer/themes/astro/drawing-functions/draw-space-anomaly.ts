@@ -9,8 +9,8 @@ export function drawSpaceAnomaly(
     tileSize: number
 ) {
     const variation = tile.variation ?? 0;
-    ctx.fillStyle = hexstr(tile.color);
-    ctx.fillRect(0, 0, tileSize, tileSize);
+    // ctx.fillStyle = hexstr(tile.color);
+    // ctx.fillRect(0, 0, tileSize, tileSize);
     // ANOMALY — anneaux concentriques
     for (let r = tileSize * 0.44; r > 5; r -= 9) {
         const alpha = Math.floor((r / (tileSize * 0.44)) * 200)

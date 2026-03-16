@@ -11,7 +11,7 @@ export type WeightedRandomCellDefinition = {
  * This generator will randomly choose a cell from a weighted list of cells.
  * And will prioritize cells of the same weight in order to form clusters of cells.
  */
-export class WeightedRandomCells extends WordGenerator<number> {
+export class WeightedRandomCells extends WordGenerator {
     private readonly totalWeight: number = 0;
     private cellData = new Map<number, WeightedRandomCellDefinition>();
     constructor(
@@ -30,11 +30,7 @@ export class WeightedRandomCells extends WordGenerator<number> {
         );
     }
 
-    nullCell() {
-        return 0;
-    }
-
-    initCell(): number {
+    defaultCellValue(): number {
         let r = this.rng.nextInt(0, this.totalWeight);
         for (const t of this.cellData.values()) {
             r -= t.weight;
@@ -45,8 +41,8 @@ export class WeightedRandomCells extends WordGenerator<number> {
         return 0;
     }
 
-    generate() {
-        this.walkCells(() => this.initCell());
+    generate(): number[][] {
+        this.walkCells(() => this.defaultCellValue());
         for (let y = 0, maxy = this.cellMap.length; y < maxy; y++) {
             for (let x = 0, maxx = this.cellMap[y].length; x < maxx; x++) {
                 const id = this.cellMap[y][x];
@@ -65,7 +61,7 @@ export class WeightedRandomCells extends WordGenerator<number> {
                         best = n;
                     }
                 }
-                this.cellMap[y][x] = best;
+                this.setCellValue(x, y, best);
             }
         }
         return this.cellMap;

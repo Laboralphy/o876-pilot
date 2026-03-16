@@ -1,8 +1,4 @@
-import { ITileRenderer } from './ITileRenderer';
-
-export type TileDefinition = {
-    id: number;
-};
+import { ITileRenderer, TileDefinition } from './ITileRenderer';
 
 export abstract class TileRenderer<T extends TileDefinition> implements ITileRenderer {
     protected constructor(

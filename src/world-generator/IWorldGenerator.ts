@@ -1,5 +1,5 @@
-export interface IWorldGenerator<T> {
-    generate(): T[][];
+export interface IWorldGenerator {
+    generate(): number[][];
     get width(): number;
     get height(): number;
 }

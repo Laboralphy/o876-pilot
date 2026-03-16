@@ -1,4 +1,4 @@
-import { TileDefinition } from '../../TileRenderer';
+import { TileDefinition } from '../../ITileRenderer';
 
 export type AstroTileDefinition = TileDefinition & {
     renderer: string;
