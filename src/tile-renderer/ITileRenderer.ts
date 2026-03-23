@@ -1,9 +1,10 @@
+import { ISeededRNG } from '../libs/mulberry32/ISeededRNG';
+
 export type TileDefinition = {
     id: number;
 };
 
 export interface ITileRenderer {
-    get tileSize(): number;
-    buildTileset(): HTMLCanvasElement;
+    buildTileset(tileSize: number, rng: ISeededRNG): HTMLCanvasElement;
     getTileIndexRegistry(): Map<number, number>;
 }

@@ -4,9 +4,9 @@ import { ISeededRNG } from '../../../../libs/mulberry32/ISeededRNG';
 
 export function drawCrackedBlock(
     ctx: CanvasRenderingContext2D,
-    rng: ISeededRNG,
     tile: AstroTileDefinition,
-    tileSize: number
+    tileSize: number,
+    rng: ISeededRNG
 ) {
     ctx.fillStyle = hexstr(tile.color);
     ctx.fillRect(0, 0, tileSize, tileSize);

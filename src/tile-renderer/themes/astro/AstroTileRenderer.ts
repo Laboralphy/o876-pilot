@@ -5,7 +5,7 @@ import { drawSpaceAnomaly } from './drawing-functions/draw-space-anomaly';
 import { TileRenderer } from '../../TileRenderer';
 import { AstroTileDefinition } from './AstroTileDefinition';
 import { IDrawingFunction } from './IDrawingFunction';
-import { createRNGFromString } from '../../../libs/mulberry32';
+import { ISeededRNG } from '../../../libs/mulberry32/ISeededRNG';
 
 const TILES: AstroTileDefinition[] = [
     {
@@ -105,18 +105,19 @@ export class AstroTileRenderer extends TileRenderer<AstroTileDefinition> {
         drawGoldCrystal,
         drawSpaceAnomaly,
     };
+
     constructor() {
-        super(TILES, 64);
+        super(TILES);
     }
 
-    drawTile(ctx: CanvasRenderingContext2D, tile: AstroTileDefinition, tileSize: number) {
+    drawTile(
+        ctx: CanvasRenderingContext2D,
+        tile: AstroTileDefinition,
+        tileSize: number,
+        rng: ISeededRNG
+    ) {
         if (tile.renderer in this.renderers) {
-            this.renderers[tile.renderer](
-                ctx,
-                createRNGFromString(Math.random().toString()),
-                tile,
-                tileSize
-            );
+            this.renderers[tile.renderer](ctx, tile, tileSize, rng);
             ctx.strokeStyle = '#ffffff07';
             ctx.lineWidth = 1;
             ctx.strokeRect(0.5, 0.5, tileSize - 1, tileSize - 1);

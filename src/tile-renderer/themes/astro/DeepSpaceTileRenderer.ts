@@ -3,7 +3,7 @@ import { drawNebula } from './drawing-functions/draw-nebula';
 import { TileRenderer } from '../../TileRenderer';
 import { AstroTileDefinition } from './AstroTileDefinition';
 import { IDrawingFunction } from './IDrawingFunction';
-import { createRNGFromString } from '../../../libs/mulberry32';
+import { ISeededRNG } from '../../../libs/mulberry32/ISeededRNG';
 
 const TILES: AstroTileDefinition[] = [
     {
@@ -62,17 +62,17 @@ export class DeepSpaceTileRenderer extends TileRenderer<AstroTileDefinition> {
         drawNebula,
     };
     constructor() {
-        super(TILES, 128);
+        super(TILES);
     }
 
-    drawTile(ctx: CanvasRenderingContext2D, tile: AstroTileDefinition, tileSize: number) {
+    drawTile(
+        ctx: CanvasRenderingContext2D,
+        tile: AstroTileDefinition,
+        tileSize: number,
+        rng: ISeededRNG
+    ) {
         if (tile.renderer in this.renderers) {
-            this.renderers[tile.renderer](
-                ctx,
-                createRNGFromString(Math.random().toString()),
-                tile,
-                tileSize
-            );
+            this.renderers[tile.renderer](ctx, tile, tileSize, rng);
         }
     }
 }

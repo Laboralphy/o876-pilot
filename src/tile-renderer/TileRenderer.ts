@@ -1,10 +1,9 @@
 import { ITileRenderer, TileDefinition } from './ITileRenderer';
+import { ISeededRNG } from '../libs/mulberry32/ISeededRNG';
+import { createRNGFromString } from '../libs/mulberry32';
 
 export abstract class TileRenderer<T extends TileDefinition> implements ITileRenderer {
-    protected constructor(
-        private readonly _tileData: T[],
-        private readonly _tileSize: number
-    ) {}
+    protected constructor(private readonly _tileData: T[]) {}
 
     getTileIndexRegistry(): Map<number, number> {
         const registry = new Map<number, number>();
@@ -14,31 +13,32 @@ export abstract class TileRenderer<T extends TileDefinition> implements ITileRen
         return registry;
     }
 
-    get tileSize(): number {
-        return this._tileSize;
-    }
-
-    abstract drawTile(ctx: CanvasRenderingContext2D, tile: T, tileSize: number): void;
+    abstract drawTile(
+        ctx: CanvasRenderingContext2D,
+        tile: T,
+        tileSize: number,
+        rng: ISeededRNG
+    ): void;
 
     private renderTile(
         ctx: CanvasRenderingContext2D,
         tile: T,
         ox: number,
         oy: number,
-        tileSize: number
+        tileSize: number,
+        rng: ISeededRNG
     ) {
         ctx.save();
         ctx.translate(ox, oy);
         ctx.beginPath();
         ctx.rect(0, 0, tileSize, tileSize);
         ctx.clip();
-        this.drawTile(ctx, tile, tileSize);
+        this.drawTile(ctx, tile, tileSize, rng);
         ctx.restore();
     }
 
-    buildTileset(): HTMLCanvasElement {
+    buildTileset(tileSize: number, rng: ISeededRNG): HTMLCanvasElement {
         const tiles = this._tileData;
-        const tileSize = this._tileSize;
         const tileCount = tiles.length;
         const tilesetWidth = Math.ceil(Math.sqrt(tileCount));
         const canvas = document.createElement('canvas');
@@ -51,7 +51,7 @@ export abstract class TileRenderer<T extends TileDefinition> implements ITileRen
         let oy: number = 0;
         let ox: number = 0;
         tiles.forEach((tile) => {
-            this.renderTile(ctx, tile, ox, oy, tileSize);
+            this.renderTile(ctx, tile, ox, oy, tileSize, rng);
             ox += tileSize;
             if (ox >= canvas.width) {
                 ox = 0;

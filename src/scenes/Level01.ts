@@ -7,6 +7,75 @@ import { createRNGFromString } from '../libs/mulberry32';
 import { AnimationDefinition } from '../world-scene/AnimationRunner';
 import { buildLayerDefinition, WorldBlock } from '../world-scene/layer-builder';
 
+const LEVEL_01 = {
+    key: 'level-1',
+    worldWidth: 200,
+    worldHeight: 200,
+    layers: {
+        foreground: {
+            depth: 10,
+            scrollFactor: 1,
+            tileRenderer: 'astro',
+            tileSize: 64,
+            animations: [
+                {
+                    key: 'space-anomaly',
+                    duration: 1000,
+                    frames: [40, 41, 42, 43],
+                    repeat: Infinity,
+                    yoyo: false,
+                },
+            ],
+            blocks: [
+                {
+                    cell: 0,
+                    tiles: [0],
+                    animations: [],
+                },
+                {
+                    cell: 1,
+                    tiles: [10, 11, 12, 13],
+                    animations: [],
+                },
+                {
+                    cell: 2,
+                    tiles: [20, 21, 22, 23],
+                    animations: [],
+                },
+                {
+                    cell: 3,
+                    tiles: [3],
+                    animations: [],
+                },
+                {
+                    cell: 4,
+                    tiles: [],
+                    animations: ['space-anomaly'],
+                },
+            ],
+        },
+        deepspace: {
+            depth: 5,
+            scrollFactor: 0.5,
+            tileRenderer: 'deepspace',
+            tileSize: 128,
+            animations: [],
+            blocks: [
+                {
+                    cell: 0,
+                    tiles: [10, 11, 12, 13],
+                    animations: [],
+                },
+                {
+                    cell: 1,
+                    tiles: [20, 21, 22, 23],
+                    animations: [],
+                },
+            ],
+        },
+    },
+};
+
 export class Level01 extends WorldScene {
     private rng = createRNGFromString('level-1');
     private cpWorldBlocks: WorldBlock[] = [

@@ -4,9 +4,9 @@ import { ISeededRNG } from '../../../../libs/mulberry32/ISeededRNG';
 
 export function drawSpaceAnomaly(
     ctx: CanvasRenderingContext2D,
-    rng: ISeededRNG,
     tile: AstroTileDefinition,
-    tileSize: number
+    tileSize: number,
+    rng: ISeededRNG
 ) {
     const variation = tile.variation ?? 0;
     // ctx.fillStyle = hexstr(tile.color);
