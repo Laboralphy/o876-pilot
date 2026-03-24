@@ -1,8 +1,27 @@
-import { CoordinateList, TileMapLayerDefinition } from './WorldScene';
 import { AnimationDefinition } from './AnimationRunner';
 import { ISeededRNG } from '../libs/mulberry32/ISeededRNG';
 import { ITileRenderer } from '../tile-renderer/ITileRenderer';
 import { IWorldGenerator } from '../world-generator/IWorldGenerator';
+import { PhysicsCell } from './physics-types';
+
+export type CoordinateList = { x: number; y: number }[];
+
+/**
+ * This type of layer is dedicated to tilemaps
+ */
+export type TileMapLayerDefinition = {
+    key: string;
+    zIndex: number;
+    tileMap: number[][]; // The real map data
+    physicsMap: (PhysicsCell | null)[][]; // Physical properties per cell (solid, transparent, tags)
+    animatedTiles: Record<string, CoordinateList>;
+    texture: HTMLCanvasElement; // The tileset image
+    tileSize: number; // size of a tile in pixels
+    tilesetWidth: number; // number of tiles in a row
+    tilesetHeight: number; // number of tiles in a column
+    scrollFactor: number; // 1 = scroll with camera, 0 = no scroll, 0.5 = parallax scrolling, all values accepted
+    animations: AnimationDefinition[];
+};
 
 /**
  * Glossary :
@@ -21,7 +40,10 @@ export type WorldBlock = {
     tiles: number[];
     animations: string[];
     attributes?: Record<string, number>;
+    tags?: string[];
 };
+
+export type { PhysicsCell };
 
 class WorldBuilder {
     constructor(
@@ -80,13 +102,16 @@ class WorldBuilder {
     buildWorld(cellMap: number[][]): {
         tileMap: number[][];
         animations: Map<string, CoordinateList>;
+        physicsMap: (PhysicsCell | null)[][];
     } {
         const wbRegistry = new Map<number, WorldBlock>(this.worldBlocks.map((w) => [w.cell, w]));
         const tileMapOutput: number[][] = [];
+        const physicsMapOutput: (PhysicsCell | null)[][] = [];
         const animationOutput = new Map<string, CoordinateList>();
         for (let y = 0, h = cellMap.length; y < h; ++y) {
             const cellRow = cellMap[y];
             const tmoRow: number[] = [];
+            const pmoRow: (PhysicsCell | null)[] = [];
             for (let x = 0, w = cellRow.length; x < w; ++x) {
                 const cell = cellRow[x];
                 const wb = wbRegistry.get(cell);
@@ -103,13 +128,20 @@ class WorldBuilder {
                         }
                     }
                     tmoRow.push(tile);
+                    pmoRow.push({
+                        solid: (wb.attributes?.solid ?? 0) > 0,
+                        transparent: (wb.attributes?.transparent ?? 0) > 0,
+                        tags: wb.tags ?? [],
+                    });
                 }
             }
             tileMapOutput.push(tmoRow);
+            physicsMapOutput.push(pmoRow);
         }
         return {
             tileMap: this.convertTileCodeToIndex(tileMapOutput),
             animations: animationOutput,
+            physicsMap: physicsMapOutput,
         };
     }
 
@@ -142,7 +174,7 @@ export function buildLayerDefinition(
     });
     const wc = new WorldBuilder(worldBlocks, fixedAnimations, tileIndex, rng);
     const map = worldGenerator.generate();
-    const { tileMap: md, animations: mdAnimations } = wc.buildWorld(map);
+    const { tileMap: md, animations: mdAnimations, physicsMap: mdPhysics } = wc.buildWorld(map);
     const rAnimTiles: Record<string, CoordinateList> = {};
     mdAnimations.forEach((value: CoordinateList, key: string) => {
         rAnimTiles[key] = value;
@@ -152,6 +184,7 @@ export function buildLayerDefinition(
         zIndex,
         scrollFactor,
         tileMap: md,
+        physicsMap: mdPhysics,
         texture: tileRenderer.buildTileset(),
         tileSize: tileRenderer.tileSize,
         tilesetWidth: worldGenerator.width,

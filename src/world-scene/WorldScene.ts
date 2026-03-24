@@ -1,16 +1,22 @@
 import Phaser from 'phaser';
 import { AnimationDefinition, AnimationRunner } from './AnimationRunner';
-import { buildLayerDefinition, WorldBlock } from './layer-builder';
+import {
+    buildLayerDefinition,
+    CoordinateList,
+    TileMapLayerDefinition,
+    WorldBlock,
+} from './layer-builder';
+import { PhysicsCell } from './physics-types';
 import { createRNGFromString } from '../libs/mulberry32';
 import { createTileRenderer } from '../tile-renderer';
 import { createWorldGenerator } from '../world-generator';
+
+export type { CoordinateList, TileMapLayerDefinition };
 
 type AnyLayer =
     | Phaser.GameObjects.Layer
     | Phaser.Tilemaps.TilemapLayer
     | Phaser.GameObjects.TileSprite;
-
-export type CoordinateList = { x: number; y: number }[];
 
 export type LevelPlane = {
     depth: number;
@@ -27,22 +33,6 @@ export type LevelDefinition = {
     worldWidth: number;
     worldHeight: number;
     planes: Record<string, LevelPlane>;
-};
-
-/**
- * This type of layer is dedicated to tilemaps
- */
-export type TileMapLayerDefinition = {
-    key: string;
-    zIndex: number;
-    tileMap: number[][]; // The real map data
-    animatedTiles: Record<string, CoordinateList>;
-    texture: HTMLCanvasElement; // The tileset image
-    tileSize: number; // size of a tile in pixels
-    tilesetWidth: number; // number of tiles in a row
-    tilesetHeight: number; // number of tiles in a column
-    scrollFactor: number; // 1 = scroll with camera, 0 = no scroll, 0.5 = parallax scrolling, all values accepted
-    animations: AnimationDefinition[];
 };
 
 export type WorldSceneOptions = {
@@ -349,6 +339,36 @@ export abstract class WorldScene extends Phaser.Scene {
             // Destroy layer. Will also destroy any associated tilemap or texture
             this._destroyLayer(id);
         }
+    }
+
+    /**
+     * Returns true if any physics layer has a solid cell at the given world pixel coordinates.
+     * Only layers with scrollFactor === 1 are considered (parallax layers are visual only).
+     */
+    isSolid(worldX: number, worldY: number): boolean {
+        for (const ld of this.layerDefinitions) {
+            if (ld.scrollFactor !== 1) continue;
+            const cellX = Math.floor(worldX / ld.tileSize);
+            const cellY = Math.floor(worldY / ld.tileSize);
+            const cell = ld.physicsMap[cellY]?.[cellX];
+            if (cell?.solid) return true;
+        }
+        return false;
+    }
+
+    /**
+     * Returns the PhysicsCell at the given world pixel coordinates, or null if the cell is empty.
+     * Only layers with scrollFactor === 1 are considered.
+     */
+    getPhysicsCell(worldX: number, worldY: number): PhysicsCell | null {
+        for (const ld of this.layerDefinitions) {
+            if (ld.scrollFactor !== 1) continue;
+            const cellX = Math.floor(worldX / ld.tileSize);
+            const cellY = Math.floor(worldY / ld.tileSize);
+            const cell = ld.physicsMap[cellY]?.[cellX];
+            if (cell) return cell;
+        }
+        return null;
     }
 
     protected _createResources(): void {
