@@ -106,8 +106,8 @@ export class AstroTileRenderer extends TileRenderer<AstroTileDefinition> {
         drawSpaceAnomaly,
     };
 
-    constructor() {
-        super(TILES);
+    constructor(tileSize: number, rng: ISeededRNG) {
+        super(TILES, tileSize, rng);
     }
 
     drawTile(

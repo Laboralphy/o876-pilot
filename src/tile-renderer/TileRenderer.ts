@@ -1,9 +1,17 @@
 import { ITileRenderer, TileDefinition } from './ITileRenderer';
 import { ISeededRNG } from '../libs/mulberry32/ISeededRNG';
-import { createRNGFromString } from '../libs/mulberry32';
 
 export abstract class TileRenderer<T extends TileDefinition> implements ITileRenderer {
-    protected constructor(private readonly _tileData: T[]) {}
+    protected constructor(
+        private readonly _tileData: T[],
+        protected readonly _tileSize: number,
+        protected readonly rng: ISeededRNG,
+        protected readonly options: Record<string, unknown> = {}
+    ) {}
+
+    get tileSize(): number {
+        return this._tileSize;
+    }
 
     getTileIndexRegistry(): Map<number, number> {
         const registry = new Map<number, number>();
@@ -20,14 +28,9 @@ export abstract class TileRenderer<T extends TileDefinition> implements ITileRen
         rng: ISeededRNG
     ): void;
 
-    private renderTile(
-        ctx: CanvasRenderingContext2D,
-        tile: T,
-        ox: number,
-        oy: number,
-        tileSize: number,
-        rng: ISeededRNG
-    ) {
+    private renderTile(ctx: CanvasRenderingContext2D, tile: T, ox: number, oy: number) {
+        const tileSize = this._tileSize;
+        const rng = this.rng;
         ctx.save();
         ctx.translate(ox, oy);
         ctx.beginPath();
@@ -37,7 +40,8 @@ export abstract class TileRenderer<T extends TileDefinition> implements ITileRen
         ctx.restore();
     }
 
-    buildTileset(tileSize: number, rng: ISeededRNG): HTMLCanvasElement {
+    buildTileset(): HTMLCanvasElement {
+        const tileSize = this._tileSize;
         const tiles = this._tileData;
         const tileCount = tiles.length;
         const tilesetWidth = Math.ceil(Math.sqrt(tileCount));
@@ -51,7 +55,7 @@ export abstract class TileRenderer<T extends TileDefinition> implements ITileRen
         let oy: number = 0;
         let ox: number = 0;
         tiles.forEach((tile) => {
-            this.renderTile(ctx, tile, ox, oy, tileSize, rng);
+            this.renderTile(ctx, tile, ox, oy);
             ox += tileSize;
             if (ox >= canvas.width) {
                 ox = 0;

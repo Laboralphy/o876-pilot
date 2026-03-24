@@ -61,8 +61,9 @@ export class DeepSpaceTileRenderer extends TileRenderer<AstroTileDefinition> {
         drawSpreadStars,
         drawNebula,
     };
-    constructor() {
-        super(TILES);
+
+    constructor(tileSize: number, rng: ISeededRNG) {
+        super(TILES, tileSize, rng);
     }
 
     drawTile(

@@ -10,15 +10,15 @@ export class CrackPlanetWG extends WeightedRandomCells {
                     weight: 65,
                 },
                 {
-                    id: 1,
+                    id: 11,
                     weight: 18,
                 },
                 {
-                    id: 2,
+                    id: 12,
                     weight: 10,
                 },
                 {
-                    id: 3,
+                    id: 13,
                     weight: 5,
                 },
                 {

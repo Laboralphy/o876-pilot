@@ -1,5 +1,9 @@
 import Phaser from 'phaser';
 import { AnimationDefinition, AnimationRunner } from './AnimationRunner';
+import { buildLayerDefinition, WorldBlock } from './layer-builder';
+import { createRNGFromString } from '../libs/mulberry32';
+import { createTileRenderer } from '../tile-renderer';
+import { createWorldGenerator } from '../world-generator';
 
 type AnyLayer =
     | Phaser.GameObjects.Layer
@@ -7,6 +11,23 @@ type AnyLayer =
     | Phaser.GameObjects.TileSprite;
 
 export type CoordinateList = { x: number; y: number }[];
+
+export type LevelPlane = {
+    depth: number;
+    scrollFactor: number;
+    tileRenderer: string;
+    worldGenerator: string;
+    tileSize: number;
+    animations: AnimationDefinition[];
+    blocks: WorldBlock[];
+};
+
+export type LevelDefinition = {
+    key: string;
+    worldWidth: number;
+    worldHeight: number;
+    planes: Record<string, LevelPlane>;
+};
 
 /**
  * This type of layer is dedicated to tilemaps
@@ -25,7 +46,7 @@ export type TileMapLayerDefinition = {
 };
 
 export type WorldSceneOptions = {
-    key: string; // scene key, used to orchestrate between scenes
+    level: LevelDefinition;
 };
 
 const CAM_SPEED = 400; // px/s
@@ -58,8 +79,8 @@ export abstract class WorldScene extends Phaser.Scene {
     protected controls: Controls | undefined = undefined;
     protected debugText: Phaser.GameObjects.Text | undefined;
 
-    protected constructor(options: WorldSceneOptions) {
-        super({ key: options.key });
+    protected constructor(protected readonly options: WorldSceneOptions) {
+        super({ key: options.level.key });
     }
 
     /**
@@ -114,9 +135,11 @@ export abstract class WorldScene extends Phaser.Scene {
                 for (const animationRegistry of animationRegistries.values()) {
                     const animationRunner = animationRegistry.runner;
                     animationRunner.update(delta);
-                    const frame = animationRunner.frame;
-                    for (const tile of animationRegistry.tiles) {
-                        layer.putTileAt(frame, tile.x, tile.y);
+                    if (animationRunner.changed) {
+                        const frame = animationRunner.frame;
+                        for (const tile of animationRegistry.tiles) {
+                            layer.putTileAt(frame, tile.x, tile.y);
+                        }
                     }
                 }
             }
@@ -335,7 +358,31 @@ export abstract class WorldScene extends Phaser.Scene {
         this.layerDefinitions.forEach((ld) => this._buildTileMapLayer(ld));
     }
 
+    protected _buildLevel(level: LevelDefinition, seed: string) {
+        const rng = createRNGFromString(seed);
+        this.layerDefinitions = Object.entries(level.planes)
+            .sort(([, p1], [, p2]) => p2.depth - p1.depth)
+            .map(([name, data]) =>
+                buildLayerDefinition(
+                    rng,
+                    name,
+                    data.depth,
+                    data.blocks,
+                    data.animations,
+                    data.scrollFactor,
+                    createTileRenderer(data.tileRenderer, data.tileSize, rng),
+                    createWorldGenerator(
+                        data.worldGenerator,
+                        Math.ceil(level.worldWidth * data.scrollFactor),
+                        Math.ceil(level.worldHeight * data.scrollFactor),
+                        rng
+                    )
+                )
+            );
+    }
+
     create() {
+        this._buildLevel(this.options.level, this.options.level.key);
         this._createResources();
         this._setupCamera();
         this._setupInput();

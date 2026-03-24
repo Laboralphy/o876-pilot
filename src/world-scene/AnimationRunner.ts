@@ -16,12 +16,13 @@ export class AnimationRunner {
     private isPaused: boolean = false;
     private isFinished: boolean = false;
     private indexSign = 1;
+    private _changed: boolean = true;
 
     constructor(ad: AnimationDefinition) {
         this.frames = ad.frames;
         this.frameDuration = ad.duration / this.frames.length;
         this.yoyo = ad.yoyo;
-        this.repeat = ad.repeat === -1 ? Infinity : ad.repeat;
+        this.repeat = ad.repeat < 0 ? Infinity : ad.repeat;
     }
 
     backward() {
@@ -70,12 +71,15 @@ export class AnimationRunner {
     }
 
     update(delta: number): void {
-        if (!this.isAnimated) return;
+        if (!this.isAnimated) {
+            return;
+        }
 
         this.deltaAccumulator += delta;
         while (this.deltaAccumulator >= this.frameDuration && this.isAnimated) {
             this.deltaAccumulator -= this.frameDuration;
             this.index += this.indexSign;
+            this._changed = true;
             if (this.yoyo) {
                 this.updateYoyo();
             } else {
@@ -84,7 +88,12 @@ export class AnimationRunner {
         }
     }
 
+    get changed(): boolean {
+        return this._changed;
+    }
+
     get frame(): number {
+        this._changed = false;
         return this.frames[this.index];
     }
 
