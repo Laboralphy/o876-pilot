@@ -169,8 +169,8 @@ export abstract class WorldScene extends Phaser.Scene implements IPhysicsReader 
             idTexture, // texture key in phaser cache
             ld.tileSize,
             ld.tileSize,
-            0, // tile margin
-            0 // tile spacing
+            1, // 1px extrusion margin (matches TileRenderer.buildTileset BORDER)
+            2  // 1px extrusion × 2 sides spacing
         );
 
         if (!tileset) {

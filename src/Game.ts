@@ -11,9 +11,16 @@ export class Game extends Phaser.Game {
                 panicMax: 120, // si delta dépasse ce seuil → on le plafonne
                 min: 10, // FPS minimum avant panic
             },
-            width: 960,
-            height: 608,
-            parent: 'game-container',
+            scale: {
+                // Logical resolution — always the same tile count on screen.
+                // The canvas is CSS-scaled to fill the browser window while
+                // preserving this 960×608 aspect ratio (letterbox / pillarbox).
+                width: 1280,
+                height: 768,
+                mode: Phaser.Scale.FIT,
+                autoCenter: Phaser.Scale.CENTER_BOTH,
+                parent: 'game-container',
+            },
             backgroundColor: '#07090f',
             antialias: false, // pixel-perfect
             pixelArt: true,
