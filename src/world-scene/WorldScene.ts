@@ -26,6 +26,7 @@ export type LevelPlane = {
     tileSize: number;
     animations: AnimationDefinition[];
     blocks: WorldBlock[];
+    physic: boolean; // if true, then physic data will be computed for this layer.
 };
 
 export type LevelDefinition = {
@@ -346,14 +347,8 @@ export abstract class WorldScene extends Phaser.Scene {
      * Only layers with scrollFactor === 1 are considered (parallax layers are visual only).
      */
     isSolid(worldX: number, worldY: number): boolean {
-        for (const ld of this.layerDefinitions) {
-            if (ld.scrollFactor !== 1) continue;
-            const cellX = Math.floor(worldX / ld.tileSize);
-            const cellY = Math.floor(worldY / ld.tileSize);
-            const cell = ld.physicsMap[cellY]?.[cellX];
-            if (cell?.solid) return true;
-        }
-        return false;
+        const data = this.getPhysicsCell(worldX, worldY);
+        return data ? data.solid : false;
     }
 
     /**
@@ -362,11 +357,15 @@ export abstract class WorldScene extends Phaser.Scene {
      */
     getPhysicsCell(worldX: number, worldY: number): PhysicsCell | null {
         for (const ld of this.layerDefinitions) {
-            if (ld.scrollFactor !== 1) continue;
+            if (!ld.physicsMap) {
+                continue;
+            }
             const cellX = Math.floor(worldX / ld.tileSize);
             const cellY = Math.floor(worldY / ld.tileSize);
             const cell = ld.physicsMap[cellY]?.[cellX];
-            if (cell) return cell;
+            if (cell) {
+                return cell;
+            }
         }
         return null;
     }
@@ -396,7 +395,8 @@ export abstract class WorldScene extends Phaser.Scene {
                         Math.ceil(level.worldWidth * data.scrollFactor),
                         Math.ceil(level.worldHeight * data.scrollFactor),
                         rng
-                    )
+                    ),
+                    data.physic
                 )
             );
     }

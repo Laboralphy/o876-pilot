@@ -13,7 +13,7 @@ export type TileMapLayerDefinition = {
     key: string;
     zIndex: number;
     tileMap: number[][]; // The real map data
-    physicsMap: (PhysicsCell | null)[][]; // Physical properties per cell (solid, transparent, tags)
+    physicsMap: PhysicsCell[][] | null; // Physical properties per cell (solid, transparent, tags)
     animatedTiles: Record<string, CoordinateList>;
     texture: HTMLCanvasElement; // The tileset image
     tileSize: number; // size of a tile in pixels
@@ -102,16 +102,16 @@ class WorldBuilder {
     buildWorld(cellMap: number[][]): {
         tileMap: number[][];
         animations: Map<string, CoordinateList>;
-        physicsMap: (PhysicsCell | null)[][];
+        physicsMap: PhysicsCell[][];
     } {
         const wbRegistry = new Map<number, WorldBlock>(this.worldBlocks.map((w) => [w.cell, w]));
         const tileMapOutput: number[][] = [];
-        const physicsMapOutput: (PhysicsCell | null)[][] = [];
+        const physicsMapOutput: PhysicsCell[][] = [];
         const animationOutput = new Map<string, CoordinateList>();
         for (let y = 0, h = cellMap.length; y < h; ++y) {
             const cellRow = cellMap[y];
             const tmoRow: number[] = [];
-            const pmoRow: (PhysicsCell | null)[] = [];
+            const pmoRow: PhysicsCell[] = [];
             for (let x = 0, w = cellRow.length; x < w; ++x) {
                 const cell = cellRow[x];
                 const wb = wbRegistry.get(cell);
@@ -132,6 +132,12 @@ class WorldBuilder {
                         solid: (wb.attributes?.solid ?? 0) > 0,
                         transparent: (wb.attributes?.transparent ?? 0) > 0,
                         tags: wb.tags ?? [],
+                    });
+                } else {
+                    pmoRow.push({
+                        solid: false,
+                        transparent: false,
+                        tags: [],
                     });
                 }
             }
@@ -163,7 +169,8 @@ export function buildLayerDefinition(
     animations: AnimationDefinition[],
     scrollFactor: number,
     tileRenderer: ITileRenderer,
-    worldGenerator: IWorldGenerator
+    worldGenerator: IWorldGenerator,
+    physic: boolean
 ): TileMapLayerDefinition {
     const tileIndex = tileRenderer.getTileIndexRegistry();
     const fixedAnimations = animations.map((a) => {
@@ -184,7 +191,7 @@ export function buildLayerDefinition(
         zIndex,
         scrollFactor,
         tileMap: md,
-        physicsMap: mdPhysics,
+        physicsMap: physic ? mdPhysics : null,
         texture: tileRenderer.buildTileset(),
         tileSize: tileRenderer.tileSize,
         tilesetWidth: worldGenerator.width,
