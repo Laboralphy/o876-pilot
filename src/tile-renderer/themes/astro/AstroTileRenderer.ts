@@ -118,9 +118,6 @@ export class AstroTileRenderer extends TileRenderer<AstroTileDefinition> {
     ) {
         if (tile.renderer in this.renderers) {
             this.renderers[tile.renderer](ctx, tile, tileSize, rng);
-            ctx.strokeStyle = '#ffffff07';
-            ctx.lineWidth = 1;
-            ctx.strokeRect(0.5, 0.5, tileSize - 1, tileSize - 1);
         }
     }
 }

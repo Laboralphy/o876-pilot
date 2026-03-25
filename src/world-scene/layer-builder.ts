@@ -134,6 +134,7 @@ class WorldBuilder {
                         tags: wb.tags ?? [],
                     });
                 } else {
+                    tmoRow.push(0);
                     pmoRow.push({
                         solid: false,
                         transparent: false,

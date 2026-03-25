@@ -7,6 +7,10 @@ import {
     WorldBlock,
 } from './layer-builder';
 import { PhysicsCell } from './physics-types';
+import { IPhysicsReader } from './IPhysicsReader';
+import { IControlState } from './IControlState';
+import { SpriteHorde } from './SpriteHorde';
+import { ShipSpriteStore } from './ShipSpriteStore';
 import { createRNGFromString } from '../libs/mulberry32';
 import { createTileRenderer } from '../tile-renderer';
 import { createWorldGenerator } from '../world-generator';
@@ -40,8 +44,6 @@ export type WorldSceneOptions = {
     level: LevelDefinition;
 };
 
-const CAM_SPEED = 400; // px/s
-
 type Controls = {
     thrust: Phaser.Input.Keyboard.Key;
     rotateCW: Phaser.Input.Keyboard.Key;
@@ -60,7 +62,7 @@ class AnimationRegistry {
     constructor(public readonly runner: AnimationRunner) {}
 }
 
-export abstract class WorldScene extends Phaser.Scene {
+export abstract class WorldScene extends Phaser.Scene implements IPhysicsReader {
     protected readonly tilemaps = new Map<string, Phaser.Tilemaps.Tilemap>();
     protected readonly layers = new Map<string, AnyLayer>();
     protected readonly animations = new Map<string, Map<string, AnimationRegistry>>();
@@ -69,6 +71,8 @@ export abstract class WorldScene extends Phaser.Scene {
     protected worldHeight: number = 0; // in pixels
     protected controls: Controls | undefined = undefined;
     protected debugText: Phaser.GameObjects.Text | undefined;
+    protected readonly spriteHorde = new SpriteHorde();
+    protected readonly spriteObjects = new Map<string, Phaser.GameObjects.Sprite>();
 
     protected constructor(protected readonly options: WorldSceneOptions) {
         super({ key: options.level.key });
@@ -238,21 +242,6 @@ export abstract class WorldScene extends Phaser.Scene {
 
     _handleCamera(delta: number) {
         const cam = this.cameras.main;
-        const speed = (CAM_SPEED / cam.zoom) * (delta / 1000);
-        const { left, right, up, down } = this.controls!;
-
-        if (left.isDown) {
-            cam.scrollX -= speed;
-        }
-        if (right.isDown) {
-            cam.scrollX += speed;
-        }
-        if (up.isDown) {
-            cam.scrollY -= speed;
-        }
-        if (down.isDown) {
-            cam.scrollY += speed;
-        }
     }
 
     _buildDebugUI() {
@@ -347,8 +336,7 @@ export abstract class WorldScene extends Phaser.Scene {
      * Only layers with scrollFactor === 1 are considered (parallax layers are visual only).
      */
     isSolid(worldX: number, worldY: number): boolean {
-        const data = this.getPhysicsCell(worldX, worldY);
-        return data ? data.solid : false;
+        return this.getPhysicsCell(worldX, worldY)?.solid ?? false;
     }
 
     /**
@@ -408,15 +396,60 @@ export abstract class WorldScene extends Phaser.Scene {
         this._setupInput();
         this._buildDebugUI();
         this._updateHUD();
+        const spriteLayer = this.add.layer().setDepth(10);
+        this.layers.set('sprites', spriteLayer);
         this.events.once('shutdown', () => this._destroyAllResources());
         this.events.once('destroy', () => this._destroyAllResources());
     }
 
-    preload() {}
+    preload() {
+        this.load.spritesheet('spaceship', 'assets/sprites/spaceship.png', {
+            frameWidth: 48,
+            frameHeight: 48,
+        });
+    }
+
+    private _getControlState(): IControlState {
+        const c = this.controls;
+        if (!c) {
+            return {
+                thrust: false,
+                rotateCW: false,
+                rotateCCW: false,
+                fire: false,
+                altFire: false,
+                boost: false,
+            };
+        }
+        return {
+            thrust: c.thrust.isDown,
+            rotateCW: c.rotateCW.isDown,
+            rotateCCW: c.rotateCCW.isDown,
+            fire: c.fire.isDown,
+            altFire: c.altFire.isDown,
+            boost: c.boost.isDown,
+        };
+    }
+
+    private _syncSprites(): void {
+        for (const store of this.spriteHorde.entries()) {
+            const sprite = this.spriteObjects.get(store.id);
+            if (sprite) {
+                sprite.x = Math.round(store.x);
+                sprite.y = Math.round(store.y);
+                sprite.angle = store.angle;
+                sprite.scale = store.scale;
+                sprite.alpha = store.alpha;
+                sprite.setFrame(store.frame);
+            }
+        }
+    }
 
     update(time: number, delta: number) {
         this._animateTiles(delta);
         this._handleCamera(delta);
+        this.spriteHorde.update(this._getControlState(), this);
+        this._syncSprites();
         this._updateHUD();
     }
 }

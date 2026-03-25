@@ -6,6 +6,7 @@
         "foreground": {
             "depth": 10,
             "scrollFactor": 1,
+            "physic": true,
             "tileRenderer": "astro",
             "worldGenerator": "crackplanet",
             "tileSize": 64,
@@ -59,6 +60,7 @@
         "deepspace": {
             "depth": 5,
             "scrollFactor": 0.5,
+            "physic": false,
             "tileRenderer": "deepspace",
             "worldGenerator": "deepspace",
             "tileSize": 128,
