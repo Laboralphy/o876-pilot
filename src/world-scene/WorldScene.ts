@@ -10,7 +10,6 @@ import { PhysicsCell } from './physics-types';
 import { IPhysicsReader } from './IPhysicsReader';
 import { IControlState } from './IControlState';
 import { SpriteHorde } from './SpriteHorde';
-import { ShipSpriteStore } from './ShipSpriteStore';
 import { createRNGFromString } from '../libs/mulberry32';
 import { createTileRenderer } from '../tile-renderer';
 import { createWorldGenerator } from '../world-generator';
@@ -170,7 +169,7 @@ export abstract class WorldScene extends Phaser.Scene implements IPhysicsReader 
             ld.tileSize,
             ld.tileSize,
             1, // 1px extrusion margin (matches TileRenderer.buildTileset BORDER)
-            2  // 1px extrusion × 2 sides spacing
+            2 // 1px extrusion × 2 sides spacing
         );
 
         if (!tileset) {

@@ -2,10 +2,12 @@ import { ISeededRNG } from '../libs/mulberry32/ISeededRNG';
 import { IWorldGenerator } from './IWorldGenerator';
 import { CrackPlanetWG } from './CrackPlanetWG';
 import { DeepSpaceWG } from './DeepSpaceWG';
+import { PrimMazeWG } from './prim';
 
 export const WORLD_GENERATORS = {
     crackplanet: CrackPlanetWG,
     deepspace: DeepSpaceWG,
+    prim: PrimMazeWG,
 };
 
 export function createWorldGenerator(
