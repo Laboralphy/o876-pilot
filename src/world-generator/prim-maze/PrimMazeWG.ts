@@ -1,15 +1,16 @@
 import { WordGenerator } from '../WorldGenerator';
 import type { ISeededRNG } from '../../libs/mulberry32/ISeededRNG';
-import { PrimLabyrinth } from './PrimLabyrinth';
-import type { Direction } from './Room';
+import { PrimLabyrinth } from '../../libs/prim/PrimLabyrinth';
+import type { Direction } from '../../libs/prim/Room';
 
 // ─── Layout constants ────────────────────────────────────────────────────────
 
-const ROOM_SIZE = 13; // each room cell = 15×15 tiles
+const ROOM_SIZE = 15; // each room cell = 15×15 tiles
 const WALL_SIZE = 3; // 5-tile-thick wall between rooms
 const STRIDE = ROOM_SIZE + WALL_SIZE; // 20 — tiles per room slot
 const PASS_MIN = 3; // narrowest passage opening
-const PASS_MAX = 9; // widest passage opening
+const PASS_MAX = 13; // widest passage opening
+const CAVE_PASSES = 3; // cellular-automaton iterations (more = rounder, cave-like rooms)
 
 // ─── Cell values (matches WorldBlock "cell" IDs in level JSON) ───────────────
 
@@ -17,13 +18,6 @@ export const PRIM_CELL_FLOOR = 0;
 export const PRIM_CELL_WALL = 1;
 
 // ─── Internal helpers ────────────────────────────────────────────────────────
-
-const OPPOSITE: Record<Direction, Direction> = {
-    N: 'S',
-    S: 'N',
-    E: 'W',
-    W: 'E',
-};
 
 /** Normalised distance from the labyrinth centre; 1 = exact centre, 0 = corner. */
 function centrality(rx: number, ry: number, labW: number, labH: number): number {
@@ -63,9 +57,10 @@ function centrality(rx: number, ry: number, labW: number, labH: number): number 
  *
  * Neighbour solidification
  * ------------------------
- * A single cellular-automaton pass converts floor cells that have ≥ 5 solid
- * neighbours (8-directional) to walls with 50 % probability.  This rounds
- * room corners and gives passages an organic feel.
+ * CAVE_PASSES cellular-automaton iterations convert floor cells that have ≥ 5
+ * solid neighbours (8-directional) to walls with 50 % probability.  Each pass
+ * feeds on the previous result, progressively growing wall areas into rounded,
+ * cave-like shapes.
  *
  * Cell values produced
  * --------------------
@@ -105,8 +100,11 @@ export class PrimMazeWG extends WordGenerator {
         this.walkCells(() => PRIM_CELL_WALL);
         this._carveRoomsAndPassages(lab);
 
-        // 4. Organic edges: floor cells surrounded by ≥ 5 walls → maybe wall
-        this._applyCellularPass();
+        // 4. Organic edges: repeated cellular-automaton passes grow wall areas
+        //    into cave-like shapes (each pass feeds on the previous result).
+        for (let i = 0; i < CAVE_PASSES; i++) {
+            this._applyCellularPass();
+        }
 
         return this.cellMap;
     }
@@ -131,8 +129,7 @@ export class PrimMazeWG extends WordGenerator {
                 // At the very centre this reaches 1 (always open); at corners ≈ 0.
                 const c = (centrality(rx, ry, labW, labH) + centrality(nx, ny, labW, labH)) / 2;
                 if (this.rng.nextBool(c * c)) {
-                    room.passages.add(dir);
-                    lab.roomAt(nx, ny)!.passages.add(OPPOSITE[dir]);
+                    lab.openPassage(rx, ry, dir);
                 }
             }
         });

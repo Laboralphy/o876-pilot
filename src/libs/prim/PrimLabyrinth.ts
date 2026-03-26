@@ -1,4 +1,4 @@
-import type { ISeededRNG } from '../../libs/mulberry32/ISeededRNG';
+import type { ISeededRNG } from '../mulberry32/ISeededRNG';
 import { Room, Direction } from './Room';
 
 // ─── Direction helpers ───────────────────────────────────────────────────────
@@ -92,6 +92,38 @@ export class PrimLabyrinth {
             if (room.isDeadEnd()) result.push(room);
         });
         return result;
+    }
+
+    // ── Passage manipulation ──────────────────────────────────────────────────
+
+    /**
+     * Opens a two-way passage between room (x, y) and its neighbour in the
+     * given direction. Both rooms are updated. Out-of-bounds neighbours are
+     * silently ignored.
+     */
+    openPassage(x: number, y: number, direction: Direction): void {
+        const room = this.roomAt(x, y);
+        if (!room) return;
+        const { dx, dy, opposite } = DIRS[direction];
+        const neighbour = this.roomAt(x + dx, y + dy);
+        if (!neighbour) return;
+        room.passages.add(direction);
+        neighbour.passages.add(opposite);
+    }
+
+    /**
+     * Closes the two-way passage between room (x, y) and its neighbour in the
+     * given direction. Both rooms are updated. Out-of-bounds neighbours are
+     * silently ignored.
+     */
+    closePassage(x: number, y: number, direction: Direction): void {
+        const room = this.roomAt(x, y);
+        if (!room) return;
+        const { dx, dy, opposite } = DIRS[direction];
+        const neighbour = this.roomAt(x + dx, y + dy);
+        if (!neighbour) return;
+        room.passages.delete(direction);
+        neighbour.passages.delete(opposite);
     }
 
     // ── Generation ────────────────────────────────────────────────────────────

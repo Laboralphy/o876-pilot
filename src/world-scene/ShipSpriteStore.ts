@@ -9,7 +9,7 @@ const DRAG = 0.98; // speed multiplier per frame (viscosity)
 const MAX_SPEED = 16; // px/frame
 const BOUNCE = -0.4; // bounce factor (reverses + dampens to 40%)
 const SHIP_RADIUS = 14; // collision probe radius in pixels
-const GRAVITY_FALL = 0.05;
+const GRAVITY_FALL = 0.1;
 
 export class ShipSpriteStore extends SpriteStore {
     xspeed: number = 0;

@@ -1,5 +1,5 @@
-import { WordGenerator } from './WorldGenerator';
-import { ISeededRNG } from '../libs/mulberry32/ISeededRNG';
+import { WordGenerator } from '../WorldGenerator';
+import { ISeededRNG } from '../../libs/mulberry32/ISeededRNG';
 
 export type WeightedRandomCellDefinition = {
     id: number;

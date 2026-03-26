@@ -1,0 +1,1 @@
+export { ZeroWG } from './ZeroWG';

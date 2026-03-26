@@ -1,5 +1,5 @@
 import { PrimLabyrinth } from './PrimLabyrinth';
-import { createRNGFromString } from '../../libs/mulberry32';
+import { createRNGFromString } from '../mulberry32';
 
 function main() {
     const rng = createRNGFromString('test');

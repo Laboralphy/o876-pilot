@@ -1,11 +1,13 @@
 import { AstroTileRenderer } from './themes/astro/AstroTileRenderer';
-import { DeepSpaceTileRenderer } from './themes/astro/DeepSpaceTileRenderer';
 import { ITileRenderer } from './ITileRenderer';
 import { ISeededRNG } from '../libs/mulberry32/ISeededRNG';
+import { DeeperSpaceTileRenderer } from './themes/astro/DeeperSpaceTileRenderer';
+import { DeepSpaceTileRenderer } from './themes/astro/DeepSpaceTileRenderer';
 
 export const TILE_RENDERERS = {
     astro: AstroTileRenderer,
     deepspace: DeepSpaceTileRenderer,
+    deeperspace: DeeperSpaceTileRenderer,
 };
 
 export function createTileRenderer(

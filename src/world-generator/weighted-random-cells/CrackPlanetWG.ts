@@ -1,5 +1,5 @@
 import { WeightedRandomCells } from './WeightedRandomCells';
-import { ISeededRNG } from '../libs/mulberry32/ISeededRNG';
+import { ISeededRNG } from '../../libs/mulberry32/ISeededRNG';
 
 export class CrackPlanetWG extends WeightedRandomCells {
     constructor(rng: ISeededRNG, worldWidth: number, worldHeight: number) {
