@@ -1,6 +1,6 @@
 import { WorldScene } from '../world-scene/WorldScene';
 import DATA from '../data/levels/level-01.json';
-import { ShipSpriteStore } from '../world-scene/ShipSpriteStore';
+import { ShipSpriteStore } from './ShipSpriteStore';
 import Phaser from 'phaser';
 
 export class Level01 extends WorldScene {
