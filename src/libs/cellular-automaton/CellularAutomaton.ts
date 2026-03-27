@@ -3,12 +3,12 @@ import type { ISeededRNG } from '../mulberry32/ISeededRNG';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const DEFAULT_NOISE    = 0.45; // default fill ratio if generateNoise() not called explicitly
-const CA_ITERATIONS    = 5;    // number of cellular-automaton steps
-const SOLID_THRESHOLD  = 5;    // solid neighbour count (out of 8) at which a cell becomes solid
+const DEFAULT_NOISE = 0.45; // default fill ratio if generateNoise() not called explicitly
+const CA_ITERATIONS = 5; // number of cellular-automaton steps
+const SOLID_THRESHOLD = 5; // solid neighbour count (out of 8) at which a cell becomes solid
 
 export const CA_FLOOR = 0;
-export const CA_WALL  = 1;
+export const CA_WALL = 1;
 
 // ─── CellularAutomaton ────────────────────────────────────────────────────────
 
@@ -48,9 +48,7 @@ export class CellularAutomaton extends WordGenerator {
      * @param percent  Probability [0–1] that each cell starts as solid.
      */
     generateNoise(percent: number): void {
-        this.walkCells((_x, _y, _v) =>
-            this._rng.nextBool(percent) ? CA_WALL : CA_FLOOR
-        );
+        this.walkCells((_x, _y, _v) => (this._rng.nextBool(percent) ? CA_WALL : CA_FLOOR));
         this._noiseApplied = true;
     }
 
@@ -115,11 +113,7 @@ export class CellularAutomaton extends WordGenerator {
                         if (dx === 0 && dy === 0) continue;
                         const ny = y + dy;
                         const nx = x + dx;
-                        if (
-                            ny < 0 || ny >= H ||
-                            nx < 0 || nx >= W ||
-                            snap[ny][nx] === CA_WALL
-                        ) {
+                        if (ny < 0 || ny >= H || nx < 0 || nx >= W || snap[ny][nx] === CA_WALL) {
                             solid++;
                         }
                     }
