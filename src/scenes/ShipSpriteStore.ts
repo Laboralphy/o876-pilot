@@ -1,6 +1,6 @@
-import { SpriteStore } from './SpriteStore';
-import { IControlState } from './IControlState';
-import { IPhysicsReader } from './IPhysicsReader';
+import { SpriteStore } from '../world-scene/SpriteStore';
+import { IControlState } from '../world-scene/IControlState';
+import { IPhysicsReader } from '../world-scene/IPhysicsReader';
 
 const ROTATE_SPEED = 3; // degrees per frame
 const THRUST_ACC = 0.3; // px/frame² — terminal velocity ~15px/frame
