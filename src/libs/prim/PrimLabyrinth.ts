@@ -97,7 +97,7 @@ export class PrimLabyrinth {
     // ── Passage manipulation ──────────────────────────────────────────────────
 
     /**
-     * Opens a two-way passage between room (x, y) and its neighbour in the
+     * Opens a two-way passage between room (x, y) and its neighbor in the
      * given direction. Both rooms are updated. Out-of-bounds neighbours are
      * silently ignored.
      */
@@ -105,14 +105,14 @@ export class PrimLabyrinth {
         const room = this.roomAt(x, y);
         if (!room) return;
         const { dx, dy, opposite } = DIRS[direction];
-        const neighbour = this.roomAt(x + dx, y + dy);
-        if (!neighbour) return;
+        const neighbor = this.roomAt(x + dx, y + dy);
+        if (!neighbor) return;
         room.passages.add(direction);
-        neighbour.passages.add(opposite);
+        neighbor.passages.add(opposite);
     }
 
     /**
-     * Closes the two-way passage between room (x, y) and its neighbour in the
+     * Closes the two-way passage between room (x, y) and its neighbor in the
      * given direction. Both rooms are updated. Out-of-bounds neighbours are
      * silently ignored.
      */
@@ -120,10 +120,10 @@ export class PrimLabyrinth {
         const room = this.roomAt(x, y);
         if (!room) return;
         const { dx, dy, opposite } = DIRS[direction];
-        const neighbour = this.roomAt(x + dx, y + dy);
-        if (!neighbour) return;
+        const neighbor = this.roomAt(x + dx, y + dy);
+        if (!neighbor) return;
         room.passages.delete(direction);
-        neighbour.passages.delete(opposite);
+        neighbor.passages.delete(opposite);
     }
 
     // ── Generation ────────────────────────────────────────────────────────────

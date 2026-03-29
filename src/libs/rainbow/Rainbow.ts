@@ -1,9 +1,10 @@
 import type { Color32, ColorRGBAStruct, ColorHSLAStruct } from './types';
+import { HTML_COLORS } from './html-colors';
 
 export { Color32, ColorRGBAStruct, ColorHSLAStruct };
 
 /**
- * Static utility class for colour manipulation.
+ * Static utility class for color manipulation.
  *
  * Supported representations
  * ─────────────────────────
@@ -19,7 +20,7 @@ export class Rainbow {
     // ── Public API ────────────────────────────────────────────────────────────
 
     /**
-     * Parse a CSS colour string into a packed Color32 (0xRRGGBBAA).
+     * Parse a CSS color string into a packed Color32 (0xRRGGBBAA).
      *
      * Supported formats
      * -----------------
@@ -36,7 +37,7 @@ export class Rainbow {
      *   hsl  — h is degrees (no unit or "deg"), "turn", "rad", or "grad"
      *           s/l are percentages; alpha is 0–1 float (or percentage)
      *
-     * Named colours ("red", "lime", …) are not yet supported.
+     * Named colours ("red", "lime", "cornflowerblue", …) — all 148 CSS named colours.
      *
      * @throws if the string cannot be parsed.
      */
@@ -45,6 +46,11 @@ export class Rainbow {
 
         if (s.startsWith('#')) {
             return Rainbow._fromHex(s);
+        }
+
+        const named = HTML_COLORS[s.toLowerCase()];
+        if (named !== undefined) {
+            return named;
         }
 
         const fn = s.match(/^([a-z]+)\s*\(([^)]*)\)$/i);
@@ -104,6 +110,94 @@ export class Rainbow {
         h /= 6;
 
         return { h, s, l, a };
+    }
+
+    /**
+     * Build a Color32 palette array from a set of colour stops.
+     *
+     * Each stop is a [index, Color32] pair. The returned array has
+     * (lastIndex + 1) entries; values between stops are linearly
+     * interpolated. Stops need not be pre-sorted.
+     *
+     * @throws if stopColors is empty or if the first stop (lowest index) is not 0.
+     */
+    static createPalette(stopColors: [number, Color32][]): Color32[] {
+        if (stopColors.length === 0) {
+            throw new Error('Rainbow.createPalette: stopColors is empty');
+        }
+        const stops = [...stopColors].sort(([a], [b]) => a - b);
+        if (stops[0][0] !== 0) {
+            throw new Error('Rainbow.createPalette: first stop must be at index 0');
+        }
+        const size = stops[stops.length - 1][0] + 1;
+        const palette: Color32[] = new Array(size);
+        for (let s = 0; s < stops.length - 1; s++) {
+            const [i0, c0] = stops[s];
+            const [i1, c1] = stops[s + 1];
+            for (let i = i0; i < i1; i++) {
+                palette[i] = Rainbow.lerpColor(c0, c1, (i - i0) / (i1 - i0));
+            }
+        }
+        // last stop is never written by the loop above
+        palette[stops[stops.length - 1][0]] = stops[stops.length - 1][1];
+        return palette;
+    }
+
+    /**
+     * Interpolate across an ordered array of Color32 values.
+     * t=0 returns colors[0], t=1 returns colors[colors.length-1].
+     * The [0,1] range is divided into (n-1) equal segments; t selects
+     * the segment and lerps between its two endpoints.
+     *
+     * @throws if colors is empty.
+     */
+    static multiLerpColor(colors: Color32[], t: number): Color32 {
+        if (colors.length === 0) {
+            throw new Error('Rainbow.multiLerpColor: colors array is empty');
+        }
+        if (colors.length === 1) {
+            return colors[0];
+        }
+        const scaled = t * (colors.length - 1);
+        const i = Math.min(Math.floor(scaled), colors.length - 2);
+        return Rainbow.lerpColor(colors[i], colors[i + 1], scaled - i);
+    }
+
+    /**
+     * Linearly interpolate between two Color32 values in RGBA space.
+     * t=0 returns c1, t=1 returns c2.
+     */
+    static lerpColor(c1: Color32, c2: Color32, t: number): Color32 {
+        const u = 1 - t;
+        return Rainbow._pack(
+            ((c1 >>> 24) & 0xff) * u + ((c2 >>> 24) & 0xff) * t,
+            ((c1 >>> 16) & 0xff) * u + ((c2 >>> 16) & 0xff) * t,
+            ((c1 >>> 8) & 0xff) * u + ((c2 >>> 8) & 0xff) * t,
+            (c1 & 0xff) * u + (c2 & 0xff) * t
+        );
+    }
+
+    /**
+     * Compute the midpoint between two Color32 values in RGBA space.
+     * Each channel (r, g, b, a) is averaged independently.
+     */
+    static getMedianColor(c1: Color32, c2: Color32): Color32 {
+        return this.lerpColor(c1, c2, 0.5);
+    }
+
+    /**
+     * Pack a ColorRGBAStruct (all channels [0, 1]) into a Color32 (0xRRGGBBAA).
+     */
+    static fromRGBA({ r, g, b, a }: ColorRGBAStruct): Color32 {
+        return Rainbow._pack(r * 255, g * 255, b * 255, a * 255);
+    }
+
+    /**
+     * Pack a ColorHSLAStruct (all channels [0, 1]) into a Color32 (0xRRGGBBAA).
+     */
+    static fromHSLA({ h, s, l, a }: ColorHSLAStruct): Color32 {
+        const [r, g, b] = Rainbow._hslToRgb8(h, s, l);
+        return Rainbow._pack(r, g, b, Math.round(a * 255));
     }
 
     /**
@@ -212,7 +306,7 @@ export class Rainbow {
         if (h.length === 6) return Rainbow._pack(x2(0), x2(2), x2(4), 255);
         if (h.length === 8) return Rainbow._pack(x2(0), x2(2), x2(4), x2(6));
 
-        throw new Error(`Rainbow.parse: invalid hex colour "${hex}"`);
+        throw new Error(`Rainbow.parse: invalid hex color "${hex}"`);
     }
 
     // ── rgb / rgba ────────────────────────────────────────────────────────────

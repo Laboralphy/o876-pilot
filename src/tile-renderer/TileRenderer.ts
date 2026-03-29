@@ -1,16 +1,27 @@
 import { ITileRenderer, TileDefinition } from './ITileRenderer';
 import { ISeededRNG } from '../libs/mulberry32/ISeededRNG';
+import { IDrawingFunction } from './IDrawingFunction';
+import { ITextureSource } from './ITextureSource';
 
 export abstract class TileRenderer<T extends TileDefinition> implements ITileRenderer {
+    protected _drawingFunctions = new Map<string, IDrawingFunction>();
     protected constructor(
         private readonly _tileData: T[],
         protected readonly _tileSize: number,
         protected readonly rng: ISeededRNG,
-        protected readonly options: Record<string, unknown> = {}
-    ) {}
+        protected readonly textureSource: ITextureSource
+    ) {
+        this.setup();
+    }
+
+    abstract setup(): void;
 
     get tileSize(): number {
         return this._tileSize;
+    }
+
+    declareDrawingFunction(key: string, drawingFunction: IDrawingFunction): void {
+        this._drawingFunctions.set(key, drawingFunction);
     }
 
     getTileIndexRegistry(): Map<number, number> {
@@ -21,12 +32,12 @@ export abstract class TileRenderer<T extends TileDefinition> implements ITileRen
         return registry;
     }
 
-    abstract drawTile(
-        ctx: CanvasRenderingContext2D,
-        tile: T,
-        tileSize: number,
-        rng: ISeededRNG
-    ): void;
+    drawTile(ctx: CanvasRenderingContext2D, tile: T, tileSize: number, rng: ISeededRNG): void {
+        const f: IDrawingFunction | undefined = this._drawingFunctions.get(tile.drawingFunction);
+        if (f) {
+            f(ctx, tileSize, rng);
+        }
+    }
 
     private renderTile(ctx: CanvasRenderingContext2D, tile: T, ox: number, oy: number) {
         const tileSize = this._tileSize;
@@ -78,16 +89,66 @@ export abstract class TileRenderer<T extends TileDefinition> implements ITileRen
             // Top edge
             ctx.drawImage(tempCanvas, 0, 0, tileSize, BORDER, ox + BORDER, oy, tileSize, BORDER);
             // Bottom edge
-            ctx.drawImage(tempCanvas, 0, tileSize - BORDER, tileSize, BORDER, ox + BORDER, oy + BORDER + tileSize, tileSize, BORDER);
+            ctx.drawImage(
+                tempCanvas,
+                0,
+                tileSize - BORDER,
+                tileSize,
+                BORDER,
+                ox + BORDER,
+                oy + BORDER + tileSize,
+                tileSize,
+                BORDER
+            );
             // Left edge
             ctx.drawImage(tempCanvas, 0, 0, BORDER, tileSize, ox, oy + BORDER, BORDER, tileSize);
             // Right edge
-            ctx.drawImage(tempCanvas, tileSize - BORDER, 0, BORDER, tileSize, ox + BORDER + tileSize, oy + BORDER, BORDER, tileSize);
+            ctx.drawImage(
+                tempCanvas,
+                tileSize - BORDER,
+                0,
+                BORDER,
+                tileSize,
+                ox + BORDER + tileSize,
+                oy + BORDER,
+                BORDER,
+                tileSize
+            );
             // Corners
             ctx.drawImage(tempCanvas, 0, 0, BORDER, BORDER, ox, oy, BORDER, BORDER);
-            ctx.drawImage(tempCanvas, tileSize - BORDER, 0, BORDER, BORDER, ox + BORDER + tileSize, oy, BORDER, BORDER);
-            ctx.drawImage(tempCanvas, 0, tileSize - BORDER, BORDER, BORDER, ox, oy + BORDER + tileSize, BORDER, BORDER);
-            ctx.drawImage(tempCanvas, tileSize - BORDER, tileSize - BORDER, BORDER, BORDER, ox + BORDER + tileSize, oy + BORDER + tileSize, BORDER, BORDER);
+            ctx.drawImage(
+                tempCanvas,
+                tileSize - BORDER,
+                0,
+                BORDER,
+                BORDER,
+                ox + BORDER + tileSize,
+                oy,
+                BORDER,
+                BORDER
+            );
+            ctx.drawImage(
+                tempCanvas,
+                0,
+                tileSize - BORDER,
+                BORDER,
+                BORDER,
+                ox,
+                oy + BORDER + tileSize,
+                BORDER,
+                BORDER
+            );
+            ctx.drawImage(
+                tempCanvas,
+                tileSize - BORDER,
+                tileSize - BORDER,
+                BORDER,
+                BORDER,
+                ox + BORDER + tileSize,
+                oy + BORDER + tileSize,
+                BORDER,
+                BORDER
+            );
 
             col++;
             if (col >= cols) {

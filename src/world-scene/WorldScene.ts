@@ -13,6 +13,7 @@ import { SpriteHorde } from './SpriteHorde';
 import { createRNGFromString } from '../libs/mulberry32';
 import { createTileRenderer } from '../tile-renderer';
 import { createWorldGenerator } from '../world-generator';
+import { ITextureSource } from '../tile-renderer/ITextureSource';
 
 export type { CoordinateList, TileMapLayerDefinition };
 
@@ -365,6 +366,11 @@ export abstract class WorldScene extends Phaser.Scene implements IPhysicsReader 
     }
 
     protected _buildLevel(level: LevelDefinition, seed: string) {
+        const textureSource: ITextureSource = {
+            getSourceImage: (key) =>
+                this.textures.get(key).getSourceImage() as HTMLImageElement | HTMLCanvasElement,
+            exists: (key) => this.textures.exists(key),
+        };
         const rng = createRNGFromString(seed);
         this.layerDefinitions = Object.entries(level.planes)
             .sort(([, p1], [, p2]) => p2.depth - p1.depth)
@@ -376,7 +382,7 @@ export abstract class WorldScene extends Phaser.Scene implements IPhysicsReader 
                     data.blocks,
                     data.animations,
                     data.scrollFactor,
-                    createTileRenderer(data.tileRenderer, data.tileSize, rng),
+                    createTileRenderer(textureSource, data.tileRenderer, data.tileSize, rng),
                     createWorldGenerator(
                         data.worldGenerator,
                         Math.ceil(level.worldWidth * data.scrollFactor),

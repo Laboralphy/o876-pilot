@@ -1,5 +1,6 @@
 export type TileDefinition = {
     id: number;
+    drawingFunction: string;
 };
 
 export interface ITileRenderer {

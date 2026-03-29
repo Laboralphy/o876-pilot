@@ -1,11 +1,11 @@
 /**
- * A packed 32-bit RGBA colour stored as a single number.
+ * A packed 32-bit RGBA color stored as a single number.
  * Bit layout: 0xRRGGBBAA  (big-endian, each channel 0–255).
  */
 export type Color32 = number;
 
 /**
- * Colour expressed as red / green / blue / alpha components.
+ * Color expressed as red / green / blue / alpha components.
  * Every channel is in the range [0, 1].
  */
 export type ColorRGBAStruct = {
@@ -16,7 +16,7 @@ export type ColorRGBAStruct = {
 };
 
 /**
- * Colour expressed as hue / saturation / lightness / alpha.
+ * Color expressed as hue / saturation / lightness / alpha.
  * Every channel is in the range [0, 1].
  */
 export type ColorHSLAStruct = {

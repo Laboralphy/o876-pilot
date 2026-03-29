@@ -55,7 +55,7 @@ function centrality(rx: number, ry: number, labW: number, labH: number): number 
  * Result: the centre of the map is a richly connected open area; the periphery
  * stays mostly maze-like.
  *
- * Neighbour solidification
+ * Neighbor solidification
  * ------------------------
  * CAVE_PASSES cellular-automaton iterations convert floor cells that have ≥ 5
  * solid neighbours (8-directional) to walls with 50 % probability.  Each pass
@@ -94,7 +94,7 @@ export class PrimMazeWG extends WordGenerator {
         const lab = new PrimLabyrinth(this.roomsX, this.roomsY, this.rng).generate();
 
         // 2. Braid the centre: open extra loops proportional to centrality²
-        this._openCentrePassages(lab);
+        this._openCenterPassages(lab);
 
         // 3. Paint everything solid, then carve rooms + passages
         this.walkCells(() => PRIM_CELL_WALL);
@@ -111,7 +111,7 @@ export class PrimMazeWG extends WordGenerator {
 
     // ── Step 2: Centre braiding ───────────────────────────────────────────────
 
-    private _openCentrePassages(lab: PrimLabyrinth): void {
+    private _openCenterPassages(lab: PrimLabyrinth): void {
         const { width: labW, height: labH } = lab;
 
         // Only iterate each wall once: check East and South neighbours.

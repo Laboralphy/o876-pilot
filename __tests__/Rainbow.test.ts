@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { Rainbow } from '../src/libs/rainbow';
+import { Rainbow, HTML_COLORS } from '../src/libs/rainbow';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -136,10 +136,30 @@ describe('Rainbow.parse', () => {
         });
     });
 
+    // Named colours
+    describe('named colours', () => {
+        it('parses "red"', () => {
+            expect(Rainbow.parse('red')).toBe(HTML_COLORS['red']);
+        });
+
+        it('parses "cornflowerblue"', () => {
+            expect(Rainbow.parse('cornflowerblue')).toBe(HTML_COLORS['cornflowerblue']);
+        });
+
+        it('is case-insensitive', () => {
+            expect(Rainbow.parse('Red')).toBe(Rainbow.parse('red'));
+            expect(Rainbow.parse('CORNFLOWERBLUE')).toBe(Rainbow.parse('cornflowerblue'));
+        });
+
+        it('grey and gray aliases resolve to the same color', () => {
+            expect(Rainbow.parse('grey')).toBe(Rainbow.parse('gray'));
+        });
+    });
+
     // Error cases
     describe('errors', () => {
-        it('throws on unknown format', () => {
-            expect(() => Rainbow.parse('red')).toThrow();
+        it('throws on unknown named colour', () => {
+            expect(() => Rainbow.parse('darkbrown')).toThrow();
         });
 
         it('throws on unsupported function', () => {
@@ -150,6 +170,262 @@ describe('Rainbow.parse', () => {
             expect(() => Rainbow.parse('#gg0011')).not.toThrow(); // NaN channels are clamped, not thrown
             expect(() => Rainbow.parse('#12')).toThrow();
         });
+    });
+});
+
+// ─── createPalette ────────────────────────────────────────────────────────────
+
+describe('Rainbow.createPalette', () => {
+    const black = pack(0, 0, 0, 255);
+    const white = pack(255, 255, 255, 255);
+    const red = pack(255, 0, 0, 255);
+    const blue = pack(0, 0, 255, 255);
+
+    it('palette length equals last stop index + 1', () => {
+        const p = Rainbow.createPalette([
+            [0, red],
+            [16, blue],
+            [255, white],
+        ]);
+        expect(p.length).toBe(256);
+    });
+
+    it('stop indices land on exact colors', () => {
+        const p = Rainbow.createPalette([
+            [0, red],
+            [16, blue],
+            [255, white],
+        ]);
+        expect(p[0]).toBe(red);
+        expect(p[16]).toBe(blue);
+        expect(p[255]).toBe(white);
+    });
+
+    it('intermediate entries are lerped between stops', () => {
+        const p = Rainbow.createPalette([
+            [0, black],
+            [10, white],
+        ]);
+        expect(p[5]).toBe(Rainbow.lerpColor(black, white, 0.5));
+        expect(p[2]).toBe(Rainbow.lerpColor(black, white, 0.2));
+    });
+
+    it('single stop palette has length 1', () => {
+        const p = Rainbow.createPalette([[0, red]]);
+        expect(p.length).toBe(1);
+        expect(p[0]).toBe(red);
+    });
+
+    it('stops do not need to be pre-sorted', () => {
+        const sorted = Rainbow.createPalette([
+            [0, red],
+            [16, blue],
+            [255, white],
+        ]);
+        const unsorted = Rainbow.createPalette([
+            [255, white],
+            [0, red],
+            [16, blue],
+        ]);
+        expect(sorted).toEqual(unsorted);
+    });
+
+    it('throws if first stop is not at index 0', () => {
+        expect(() =>
+            Rainbow.createPalette([
+                [1, red],
+                [255, white],
+            ])
+        ).toThrow();
+    });
+
+    it('throws on empty array', () => {
+        expect(() => Rainbow.createPalette([])).toThrow();
+    });
+});
+
+// ─── multiLerpColor ───────────────────────────────────────────────────────────
+
+describe('Rainbow.multiLerpColor', () => {
+    const black = pack(0, 0, 0, 255);
+    const grey = pack(128, 128, 128, 255);
+    const white = pack(255, 255, 255, 255);
+    const red = pack(255, 0, 0, 255);
+    const blue = pack(0, 0, 255, 255);
+
+    it('t=0 returns first color', () => {
+        expect(Rainbow.multiLerpColor([red, grey, blue], 0)).toBe(red);
+    });
+
+    it('t=1 returns last color', () => {
+        expect(Rainbow.multiLerpColor([red, grey, blue], 1)).toBe(blue);
+    });
+
+    it('single color array returns that color regardless of t', () => {
+        expect(Rainbow.multiLerpColor([red], 0.5)).toBe(red);
+    });
+
+    it('two colors behaves like lerpColor', () => {
+        expect(Rainbow.multiLerpColor([black, white], 0.5)).toBe(
+            Rainbow.lerpColor(black, white, 0.5)
+        );
+    });
+
+    it('t=0.5 on three equal-stop colors hits the middle color exactly', () => {
+        expect(Rainbow.multiLerpColor([black, grey, white], 0.5)).toBe(grey);
+    });
+
+    it('t=0.25 is midpoint of first segment', () => {
+        expect(Rainbow.multiLerpColor([black, grey, white], 0.25)).toBe(
+            Rainbow.lerpColor(black, grey, 0.5)
+        );
+    });
+
+    it('t=0.75 is midpoint of second segment', () => {
+        expect(Rainbow.multiLerpColor([black, grey, white], 0.75)).toBe(
+            Rainbow.lerpColor(grey, white, 0.5)
+        );
+    });
+
+    it('throws on empty array', () => {
+        expect(() => Rainbow.multiLerpColor([], 0.5)).toThrow();
+    });
+});
+
+// ─── lerpColor ────────────────────────────────────────────────────────────────
+
+describe('Rainbow.lerpColor', () => {
+    it('t=0 returns c1', () => {
+        const c1 = pack(255, 0, 0, 255);
+        const c2 = pack(0, 0, 255, 255);
+        expect(Rainbow.lerpColor(c1, c2, 0)).toBe(c1);
+    });
+
+    it('t=1 returns c2', () => {
+        const c1 = pack(255, 0, 0, 255);
+        const c2 = pack(0, 0, 255, 255);
+        expect(Rainbow.lerpColor(c1, c2, 1)).toBe(c2);
+    });
+
+    it('t=0.5 equals getMedianColor', () => {
+        const c1 = pack(0, 0, 0, 255);
+        const c2 = pack(255, 255, 255, 255);
+        expect(Rainbow.lerpColor(c1, c2, 0.5)).toBe(Rainbow.getMedianColor(c1, c2));
+    });
+
+    it('interpolates each channel independently', () => {
+        const c1 = pack(0, 100, 200, 0);
+        const c2 = pack(100, 200, 0, 200);
+        const mid = Rainbow.convertToRGBA(Rainbow.lerpColor(c1, c2, 0.25));
+        expect(mid.r).toBeCloseTo(25 / 255, 2);
+        expect(mid.g).toBeCloseTo(125 / 255, 2);
+        expect(mid.b).toBeCloseTo(150 / 255, 2);
+        expect(mid.a).toBeCloseTo(50 / 255, 2);
+    });
+
+    it('alpha is interpolated', () => {
+        const c1 = pack(0, 0, 0, 0);
+        const c2 = pack(0, 0, 0, 255);
+        expect(Rainbow.convertToRGBA(Rainbow.lerpColor(c1, c2, 0.75)).a).toBeCloseTo(0.75, 2);
+    });
+});
+
+// ─── getMedianColor ───────────────────────────────────────────────────────────
+
+describe('Rainbow.getMedianColor', () => {
+    it('median of black and white is mid-grey', () => {
+        const mid = Rainbow.getMedianColor(pack(0, 0, 0, 255), pack(255, 255, 255, 255));
+        expect(mid).toBe(pack(128, 128, 128, 255));
+    });
+
+    it('median of red and blue is magenta-ish (128, 0, 128)', () => {
+        const mid = Rainbow.getMedianColor(pack(255, 0, 0, 255), pack(0, 0, 255, 255));
+        expect(mid).toBe(pack(128, 0, 128, 255));
+    });
+
+    it('median of identical colors is the same color', () => {
+        const c = pack(100, 150, 200, 255);
+        expect(Rainbow.getMedianColor(c, c)).toBe(c);
+    });
+
+    it('alpha is averaged', () => {
+        const mid = Rainbow.getMedianColor(pack(0, 0, 0, 0), pack(0, 0, 0, 255));
+        expect(Rainbow.convertToRGBA(mid).a).toBeCloseTo(0.5, 2);
+    });
+
+    it('is commutative', () => {
+        const c1 = pack(30, 60, 90, 200);
+        const c2 = pack(120, 180, 240, 100);
+        expect(Rainbow.getMedianColor(c1, c2)).toBe(Rainbow.getMedianColor(c2, c1));
+    });
+});
+
+// ─── fromRGBA ─────────────────────────────────────────────────────────────────
+
+describe('Rainbow.fromRGBA', () => {
+    it('pure red', () => {
+        expect(Rainbow.fromRGBA({ r: 1, g: 0, b: 0, a: 1 })).toBe(pack(255, 0, 0, 255));
+    });
+
+    it('black', () => {
+        expect(Rainbow.fromRGBA({ r: 0, g: 0, b: 0, a: 1 })).toBe(pack(0, 0, 0, 255));
+    });
+
+    it('white', () => {
+        expect(Rainbow.fromRGBA({ r: 1, g: 1, b: 1, a: 1 })).toBe(pack(255, 255, 255, 255));
+    });
+
+    it('half-alpha', () => {
+        const c = Rainbow.fromRGBA({ r: 0, g: 0, b: 0, a: 0.5 });
+        expect(Rainbow.convertToRGBA(c).a).toBeCloseTo(0.5, 2);
+    });
+
+    it('round-trip: convertToRGBA → fromRGBA', () => {
+        const original = Rainbow.parse('#3a7bd5cc');
+        const roundTripped = Rainbow.fromRGBA(Rainbow.convertToRGBA(original));
+        expect(roundTripped).toBe(original);
+    });
+});
+
+// ─── fromHSLA ─────────────────────────────────────────────────────────────────
+
+describe('Rainbow.fromHSLA', () => {
+    it('pure red: h=0, s=1, l=0.5', () => {
+        expect(Rainbow.fromHSLA({ h: 0, s: 1, l: 0.5, a: 1 })).toBe(pack(255, 0, 0, 255));
+    });
+
+    it('pure green: h=1/3, s=1, l=0.5', () => {
+        expect(Rainbow.fromHSLA({ h: 1 / 3, s: 1, l: 0.5, a: 1 })).toBe(pack(0, 255, 0, 255));
+    });
+
+    it('pure blue: h=2/3, s=1, l=0.5', () => {
+        expect(Rainbow.fromHSLA({ h: 2 / 3, s: 1, l: 0.5, a: 1 })).toBe(pack(0, 0, 255, 255));
+    });
+
+    it('black: l=0', () => {
+        expect(Rainbow.fromHSLA({ h: 0, s: 0, l: 0, a: 1 })).toBe(pack(0, 0, 0, 255));
+    });
+
+    it('white: l=1', () => {
+        expect(Rainbow.fromHSLA({ h: 0, s: 0, l: 1, a: 1 })).toBe(pack(255, 255, 255, 255));
+    });
+
+    it('alpha is packed correctly', () => {
+        const c = Rainbow.fromHSLA({ h: 0, s: 1, l: 0.5, a: 0.5 });
+        expect(Rainbow.convertToRGBA(c).a).toBeCloseTo(0.5, 2);
+    });
+
+    it('round-trip: convertToHSLA → fromHSLA', () => {
+        const original = Rainbow.parse('#3a7bd5ff');
+        const hsla = Rainbow.convertToHSLA(original);
+        const roundTripped = Rainbow.fromHSLA(hsla);
+        // Allow ±1 per channel due to 8-bit rounding
+        const o = Rainbow.convertToRGBA(original);
+        const r = Rainbow.convertToRGBA(roundTripped);
+        expect(o.r).toBeCloseTo(r.r, 2);
+        expect(o.g).toBeCloseTo(r.g, 2);
+        expect(o.b).toBeCloseTo(r.b, 2);
+        expect(o.a).toBeCloseTo(r.a, 2);
     });
 });
 
