@@ -84,11 +84,6 @@ export class PrimMazeWG extends WordGenerator {
 
     // ── Public interface ──────────────────────────────────────────────────────
 
-    /** Number of logical rooms along X. */
-    get rooms(): { x: number; y: number } {
-        return { x: this.roomsX, y: this.roomsY };
-    }
-
     generate(): number[][] {
         // 1. Perfect maze via Prim's algorithm
         const lab = new PrimLabyrinth(this.roomsX, this.roomsY, this.rng).generate();
@@ -99,12 +94,6 @@ export class PrimMazeWG extends WordGenerator {
         // 3. Paint everything solid, then carve rooms + passages
         this.walkCells(() => PRIM_CELL_WALL);
         this._carveRoomsAndPassages(lab);
-
-        // 4. Organic edges: repeated cellular-automaton passes grow wall areas
-        //    into cave-like shapes (each pass feeds on the previous result).
-        for (let i = 0; i < CAVE_PASSES; i++) {
-            this._applyCellularPass();
-        }
 
         return this.cellMap;
     }
@@ -182,48 +171,5 @@ export class PrimMazeWG extends WordGenerator {
             // N and W passages are the mirror of S and E from adjacent rooms;
             // they are already carved when those rooms are processed.
         });
-    }
-
-    // ── Step 4: Cellular-automaton pass ───────────────────────────────────────
-
-    /**
-     * For every floor cell: if ≥ 5 of its 8 neighbours are solid (or out of
-     * bounds), flip it to solid with 50 % probability.
-     * Out-of-bounds counts as solid so border rooms get rounded corners.
-     */
-    private _applyCellularPass(): void {
-        // Snapshot the current state so we evaluate neighbours before any
-        // changes from this pass take effect (no cascade within one pass).
-        const snap = this.cellMap.map((row) => row.slice());
-        const W = this.worldWidth;
-        const H = this.worldHeight;
-
-        for (let y = 0; y < H; y++) {
-            for (let x = 0; x < W; x++) {
-                if (snap[y][x] === PRIM_CELL_WALL) continue;
-
-                let solid = 0;
-                for (let dy = -1; dy <= 1; dy++) {
-                    for (let dx = -1; dx <= 1; dx++) {
-                        if (dx === 0 && dy === 0) continue;
-                        const ny = y + dy;
-                        const nx = x + dx;
-                        if (
-                            ny < 0 ||
-                            ny >= H ||
-                            nx < 0 ||
-                            nx >= W ||
-                            snap[ny][nx] === PRIM_CELL_WALL
-                        ) {
-                            solid++;
-                        }
-                    }
-                }
-
-                if (solid >= 5 && this.rng.nextBool(0.5)) {
-                    this.setCellValue(x, y, PRIM_CELL_WALL);
-                }
-            }
-        }
     }
 }

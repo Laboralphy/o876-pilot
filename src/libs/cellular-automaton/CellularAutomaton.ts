@@ -103,23 +103,33 @@ export class CellularAutomaton extends WordGenerator {
         const W = this.width;
         const H = this.height;
 
-        for (let y = 0; y < H; y++) {
-            for (let x = 0; x < W; x++) {
-                if (this._protected.has(y * W + x)) continue;
-
-                let solid = 0;
-                for (let dy = -1; dy <= 1; dy++) {
-                    for (let dx = -1; dx <= 1; dx++) {
-                        if (dx === 0 && dy === 0) continue;
-                        const ny = y + dy;
-                        const nx = x + dx;
-                        if (ny < 0 || ny >= H || nx < 0 || nx >= W || snap[ny][nx] === CA_WALL) {
-                            solid++;
-                        }
+        const getSolidNeighbors = (x: number, y: number): number => {
+            let solid = 0;
+            for (let dy = -1; dy <= 1; dy++) {
+                for (let dx = -1; dx <= 1; dx++) {
+                    if (dx === 0 && dy === 0) {
+                        continue;
+                    }
+                    const ny = y + dy;
+                    const nx = x + dx;
+                    if (ny < 0 || ny >= H || nx < 0 || nx >= W || snap[ny][nx] === CA_WALL) {
+                        solid++;
                     }
                 }
+            }
+            return solid;
+        };
 
-                this.setCellValue(x, y, solid >= SOLID_THRESHOLD ? CA_WALL : CA_FLOOR);
+        for (let y = 0; y < H; y++) {
+            for (let x = 0; x < W; x++) {
+                if (this._protected.has(y * W + x)) {
+                    continue;
+                }
+                this.setCellValue(
+                    x,
+                    y,
+                    getSolidNeighbors(x, y) >= SOLID_THRESHOLD ? CA_WALL : CA_FLOOR
+                );
             }
         }
     }

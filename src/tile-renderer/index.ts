@@ -10,7 +10,7 @@ export function createTileRenderer(
     rng: ISeededRNG
 ): ITileRenderer {
     if (theme in TILE_RENDERERS) {
-        return new TILE_RENDERERS[theme](textureSource, tileSize, rng);
+        return new TILE_RENDERERS[theme](tileSize, rng, textureSource);
     }
     throw new ReferenceError(`Unknown tile renderer: ${theme}`);
 }

@@ -372,6 +372,18 @@ export abstract class WorldScene extends Phaser.Scene implements IPhysicsReader 
             exists: (key) => this.textures.exists(key),
         };
         const rng = createRNGFromString(seed);
+        const referencePlane = Object.values(level.planes).find((p) => p.scrollFactor === 1);
+        if (!referencePlane) {
+            throw new Error(
+                'In level definition : need at least one layer with scrollFactor 1 to get a reference plane'
+            );
+        }
+        const w = level.worldWidth * referencePlane.scrollFactor * referencePlane.tileSize;
+        const h = level.worldHeight * referencePlane.scrollFactor * referencePlane.tileSize;
+        const screenWidth = this.scale.width;
+        const screenHeight = this.scale.height;
+        const maxScrollX = w - screenWidth;
+        const maxScrollY = h - screenHeight;
         this.layerDefinitions = Object.entries(level.planes)
             .sort(([, p1], [, p2]) => p2.depth - p1.depth)
             .map(([name, data]) =>
@@ -385,8 +397,8 @@ export abstract class WorldScene extends Phaser.Scene implements IPhysicsReader 
                     createTileRenderer(textureSource, data.tileRenderer, data.tileSize, rng),
                     createWorldGenerator(
                         data.worldGenerator,
-                        Math.ceil(level.worldWidth * data.scrollFactor),
-                        Math.ceil(level.worldHeight * data.scrollFactor),
+                        Math.ceil((screenWidth + maxScrollX * data.scrollFactor) / data.tileSize),
+                        Math.ceil((screenHeight + maxScrollY * data.scrollFactor) / data.tileSize),
                         rng
                     ),
                     data.physic

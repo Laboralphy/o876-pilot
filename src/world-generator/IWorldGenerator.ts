@@ -1,7 +1,7 @@
-export interface IWorldGenerator {
+import { IGrid } from '../libs/grid/IGrid';
+
+export interface IWorldGenerator extends IGrid<number> {
     generate(): number[][];
-    get width(): number;
-    get height(): number;
     setCellValue(x: number, y: number, value: number): void;
     getCellValue(x: number, y: number): number | undefined;
 }

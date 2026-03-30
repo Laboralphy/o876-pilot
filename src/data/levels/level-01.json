@@ -7,7 +7,7 @@
             "depth": 10,
             "scrollFactor": 1,
             "physic": true,
-            "tileRenderer": "astro",
+            "tileRenderer": "test",
             "worldGenerator": "prim",
             "tileSize": 64,
             "animations": [
@@ -29,38 +29,10 @@
                 },
                 {
                     "cell": 1,
-                    "tiles": [20, 21, 22, 23],
+                    "tiles": [10, 11],
                     "animations": [],
                     "attributes": { "solid": 1, "transparent": 0 },
                     "tags": ["rock"]
-                },
-                {
-                    "cell": 11,
-                    "tiles": [10, 11, 12, 13],
-                    "animations": [],
-                    "attributes": { "solid": 1, "transparent": 0 },
-                    "tags": ["asteroid", "destructible"]
-                },
-                {
-                    "cell": 12,
-                    "tiles": [20, 21, 22, 23],
-                    "animations": [],
-                    "attributes": { "solid": 1, "transparent": 0 },
-                    "tags": ["rock"]
-                },
-                {
-                    "cell": 13,
-                    "tiles": [3],
-                    "animations": [],
-                    "attributes": { "solid": 1, "transparent": 0 },
-                    "tags": ["crystal", "collectible"]
-                },
-                {
-                    "cell": 4,
-                    "tiles": [],
-                    "animations": ["space-anomaly"],
-                    "attributes": { "solid": 0, "transparent": 1 },
-                    "tags": ["hazard", "anomaly"]
                 }
             ]
         },
@@ -68,30 +40,30 @@
             "depth": 5,
             "scrollFactor": 0.2,
             "physic": false,
-            "tileRenderer": "deepspace",
+            "tileRenderer": "space",
             "worldGenerator": "deeperspace",
             "tileSize": 128,
             "animations": [],
             "blocks": [
                 {
                     "cell": 0,
-                    "tiles": [10, 11, 12, 13, 14, 15, 16, 17],
+                    "tiles": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
                     "animations": []
                 }
             ]
         },
         "deeperspace": {
-            "depth": 3,
+            "depth": 2,
             "scrollFactor": 0.05,
             "physic": false,
-            "tileRenderer": "deeperspace",
+            "tileRenderer": "space",
             "worldGenerator": "deeperspace",
-            "tileSize": 256,
+            "tileSize": 128,
             "animations": [],
             "blocks": [
                 {
                     "cell": 0,
-                    "tiles": [20, 21, 22, 23, 24, 25, 26, 27],
+                    "tiles": [10, 11, 12, 13, 14, 15, 16, 17, 18, 19],
                     "animations": []
                 }
             ]

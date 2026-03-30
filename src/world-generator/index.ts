@@ -1,16 +1,7 @@
 import { ISeededRNG } from '../libs/mulberry32/ISeededRNG';
 import { IWorldGenerator } from './IWorldGenerator';
-import { CrackPlanetWG } from './weighted-random-cells/CrackPlanetWG';
-import { DeepSpaceWG } from './weighted-random-cells/DeepSpaceWG';
-import { PrimMazeWG } from './prim-maze';
-import { ZeroWG } from './total-zero';
 
-export const WORLD_GENERATORS = {
-    crackplanet: CrackPlanetWG,
-    deepspace: DeepSpaceWG,
-    deeperspace: ZeroWG,
-    prim: PrimMazeWG,
-};
+import { WORLD_GENERATORS } from './generator-registry';
 
 export function createWorldGenerator(
     theme: string,

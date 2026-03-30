@@ -9,6 +9,7 @@ const tick = (runner: AnimationRunner, delta: number, times = 1) => {
 
 const makeRunner = (partial: Partial<AnimationDefinition> = {}) =>
     new AnimationRunner({
+        key: Math.random().toString(),
         frames: [10, 11, 12, 13],
         duration: 400, // 100ms par frame
         repeat: Infinity,
@@ -178,6 +179,7 @@ describe('isAnimated', () => {
 describe('edge cases', () => {
     it('fonctionne avec une seule frame', () => {
         const runner = new AnimationRunner({
+            key: 'test',
             frames: [42],
             duration: 200,
             repeat: -1,
@@ -189,6 +191,7 @@ describe('edge cases', () => {
 
     it('fonctionne avec deux frames en yoyo', () => {
         const runner = new AnimationRunner({
+            key: 'test',
             frames: [0, 1],
             duration: 200,
             repeat: -1,
