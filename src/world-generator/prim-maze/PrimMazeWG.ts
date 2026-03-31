@@ -1,21 +1,25 @@
 import { WordGenerator } from '../WorldGenerator';
 import type { ISeededRNG } from '../../libs/mulberry32/ISeededRNG';
-import { PrimLabyrinth } from '../../libs/prim/PrimLabyrinth';
-import type { Direction } from '../../libs/prim/Room';
+import { PrimLabyrinth, Direction } from '../../libs/prim';
+import { IDaedalus } from '../../libs/daedalus';
+import { NumberGrid } from '../../libs/grid/NumberGrid';
+import { line } from '../../libs/bresenham';
+import { CONWAY_CAVE, ConwayGrid } from '../../libs/conway';
 
-// ─── Layout constants ────────────────────────────────────────────────────────
-
-const ROOM_SIZE = 15; // each room cell = 15×15 tiles
-const WALL_SIZE = 3; // 5-tile-thick wall between rooms
-const STRIDE = ROOM_SIZE + WALL_SIZE; // 20 — tiles per room slot
-const PASS_MIN = 3; // narrowest passage opening
-const PASS_MAX = 13; // widest passage opening
-const CAVE_PASSES = 3; // cellular-automaton iterations (more = rounder, cave-like rooms)
-
-// ─── Cell values (matches WorldBlock "cell" IDs in level JSON) ───────────────
+// ─── Cell values ─────────────────────────────────────────────────────────────
 
 export const PRIM_CELL_FLOOR = 0;
 export const PRIM_CELL_WALL = 1;
+
+// ─── Room passage attribute keys ─────────────────────────────────────────────
+// Stored on the room that owns the passage (E or S direction).
+// N/W metrics are read from the adjacent room's E/S attributes.
+
+export const ATTR_PASS_E_WIDTH = 'pass.e.width';
+export const ATTR_PASS_E_OFFSET = 'pass.e.offset';
+export const ATTR_PASS_S_WIDTH = 'pass.s.width';
+export const ATTR_PASS_S_OFFSET = 'pass.s.offset';
+export const ATTR_ROCK_DENSITY = 'rock.density';
 
 // ─── Internal helpers ────────────────────────────────────────────────────────
 
@@ -23,9 +27,9 @@ export const PRIM_CELL_WALL = 1;
 function centrality(rx: number, ry: number, labW: number, labH: number): number {
     const cx = (labW - 1) / 2;
     const cy = (labH - 1) / 2;
-    const maxDist = Math.sqrt(cx * cx + cy * cy);
+    const maxDist = Math.hypot(cx, cy);
     if (maxDist === 0) return 1;
-    return 1 - Math.sqrt((rx - cx) ** 2 + (ry - cy) ** 2) / maxDist;
+    return 1 - Math.hypot(rx - cx, ry - cy) / maxDist;
 }
 
 // ─── PrimMazeWG ──────────────────────────────────────────────────────────────
@@ -35,32 +39,23 @@ function centrality(rx: number, ry: number, labW: number, labH: number): number 
  *
  * Grid layout
  * -----------
- * Each logical room maps to a (ROOM_SIZE × ROOM_SIZE) tile block.
- * Adjacent rooms are separated by a 1-tile wall.  A passage through that wall
- * is a run of PASS_MIN–PASS_MAX tiles centred on the shared side.
+ * Each logical room occupies a (roomWidth × roomHeight) tile block where
+ * roomWidth/roomHeight are the strides. The last column (x = rw-1) and last
+ * row (y = rh-1) of each block are the shared E and S walls. Interior is
+ * (rw-1) × (rh-1) tiles.
  *
- *   ┌───────────────┬─────┬───────────────┐
- *   │    room       │wall │    room       │   room = 15×15 tiles
- *   │    (0,0)      │     │    (1,0)      │   wall = 5 tiles thick
- *   │               │·····│               │   ··· = passage (3–11 tiles wide)
- *   │               │·····│               │
- *   └───────────────┴─────┴───────────────┘
+ *   ┌──────────────────┬─┐
+ *   │  interior        │E│  rw columns  (interior + 1 E-wall)
+ *   │  (rw-1)×(rh-1)   │w│
+ *   ├──────────────────┼─┤
+ *   │  S wall row      │ │  rh rows     (interior + 1 S-wall)
+ *   └──────────────────┴─┘
  *
- * Output tile dimensions: (roomsX × 20 + 1) × (roomsY × 20 + 1).
- *
- * Centre braiding
- * ---------------
- * After Prim's perfect maze is generated, extra passages are opened with a
- * probability proportional to the *square* of a wall's average centrality.
- * Result: the centre of the map is a richly connected open area; the periphery
- * stays mostly maze-like.
- *
- * Neighbor solidification
- * ------------------------
- * CAVE_PASSES cellular-automaton iterations convert floor cells that have ≥ 5
- * solid neighbours (8-directional) to walls with 50 % probability.  Each pass
- * feeds on the previous result, progressively growing wall areas into rounded,
- * cave-like shapes.
+ * Room carving
+ * ------------
+ * Each room is rendered into its own NumberGrid. Bresenham lines are drawn
+ * from every cell of a 5×5 block centred on the room interior to every cell
+ * of every open passage entrance, producing organic, corridor-like rooms.
  *
  * Cell values produced
  * --------------------
@@ -71,39 +66,48 @@ export class PrimMazeWG extends WordGenerator {
     private readonly rng: ISeededRNG;
     private readonly roomsX: number;
     private readonly roomsY: number;
+    private readonly maze: PrimLabyrinth;
+    private readonly roomWidth: number;
+    private readonly roomHeight: number;
 
     constructor(rng: ISeededRNG, width: number, height: number) {
-        // Derive room counts so the tile grid fits within the requested dimensions.
-        const roomsX = Math.max(1, Math.floor((width - 1) / STRIDE));
-        const roomsY = Math.max(1, Math.floor((height - 1) / STRIDE));
-        super(roomsX * STRIDE + 1, roomsY * STRIDE + 1);
+        const rh = rng.nextInt(9, 15);
+        const rw = rh + rng.nextInt(2, 5);
+        const roomsX = Math.max(1, Math.floor((width - 1) / rw));
+        const roomsY = Math.max(1, Math.floor((height - 1) / rh));
+        super(roomsX * rw + 1, roomsY * rh + 1);
+        this.roomHeight = rh;
+        this.roomWidth = rw;
         this.rng = rng;
         this.roomsX = roomsX;
         this.roomsY = roomsY;
+        this.maze = new PrimLabyrinth(roomsX, roomsY, rng);
     }
 
     // ── Public interface ──────────────────────────────────────────────────────
 
     generate(): number[][] {
         // 1. Perfect maze via Prim's algorithm
-        const lab = new PrimLabyrinth(this.roomsX, this.roomsY, this.rng).generate();
+        this.maze.generate();
 
         // 2. Braid the centre: open extra loops proportional to centrality²
-        this._openCenterPassages(lab);
+        this._openCenterPassages(this.maze);
 
-        // 3. Paint everything solid, then carve rooms + passages
+        // 3. Pick width and offset for every open passage
+        this._choosePassageMetrics(this.maze);
+
+        // 4. Paint everything solid, then stamp each room
         this.walkCells(() => PRIM_CELL_WALL);
-        this._carveRoomsAndPassages(lab);
+        this._renderEachRoom();
 
         return this.cellMap;
     }
 
     // ── Step 2: Centre braiding ───────────────────────────────────────────────
 
-    private _openCenterPassages(lab: PrimLabyrinth): void {
+    private _openCenterPassages(lab: IDaedalus): void {
         const { width: labW, height: labH } = lab;
 
-        // Only iterate each wall once: check East and South neighbours.
         lab.forEach((room, rx, ry) => {
             const wallCandidates: Array<{ dir: Direction; nx: number; ny: number }> = [
                 { dir: 'E', nx: rx + 1, ny: ry },
@@ -112,10 +116,8 @@ export class PrimMazeWG extends WordGenerator {
 
             for (const { dir, nx, ny } of wallCandidates) {
                 if (nx >= labW || ny >= labH) continue;
-                if (room.hasPassage(dir)) continue; // already open
+                if (room.hasPassage(dir)) continue;
 
-                // Probability = square of average centrality of the two rooms.
-                // At the very centre this reaches 1 (always open); at corners ≈ 0.
                 const c = (centrality(rx, ry, labW, labH) + centrality(nx, ny, labW, labH)) / 2;
                 if (this.rng.nextBool(c * c)) {
                     lab.openPassage(rx, ry, dir);
@@ -124,52 +126,151 @@ export class PrimMazeWG extends WordGenerator {
         });
     }
 
-    // ── Step 3: Carve rooms and passages ──────────────────────────────────────
+    // ── Step 3: Passage metrics ───────────────────────────────────────────────
 
-    private _carveRoomsAndPassages(lab: PrimLabyrinth): void {
-        lab.forEach((room, rx, ry) => {
-            // Top-left corner of this room in tile coordinates.
-            // +1 accounts for the 1-tile outer border wall.
-            const ox = 1 + rx * STRIDE;
-            const oy = 1 + ry * STRIDE;
-
-            // ── Carve the 9×9 room interior ──────────────────────────────────
-            for (let dy = 0; dy < ROOM_SIZE; dy++) {
-                for (let dx = 0; dx < ROOM_SIZE; dx++) {
-                    this.setCellValue(ox + dx, oy + dy, PRIM_CELL_FLOOR);
-                }
-            }
-
-            // ── East passage ──────────────────────────────────────────────────
-            // The wall block spans WALL_SIZE columns starting at x = ox + ROOM_SIZE.
-            // The opening is centred in the room's Y span.
+    /**
+     * For every open E or S passage, randomly choose a width in [PASS_MIN,
+     * PASS_MAX] and an offset along the shared wall. Stored as Room attributes:
+     *
+     *   E passage → ATTR_PASS_E_WIDTH, ATTR_PASS_E_OFFSET  (offset along Y)
+     *   S passage → ATTR_PASS_S_WIDTH, ATTR_PASS_S_OFFSET  (offset along X)
+     */
+    private _choosePassageMetrics(lab: IDaedalus): void {
+        lab.forEach((room) => {
             if (room.hasPassage('E')) {
-                const pw = this.rng.nextInt(PASS_MIN, PASS_MAX);
-                const wallStartX = ox + ROOM_SIZE;
-                const passStartY = oy + Math.floor((ROOM_SIZE - pw) / 2);
-                for (let wx = 0; wx < WALL_SIZE; wx++) {
-                    for (let i = 0; i < pw; i++) {
-                        this.setCellValue(wallStartX + wx, passStartY + i, PRIM_CELL_FLOOR);
-                    }
-                }
+                const width = this.rng.nextInt(3, this.roomHeight >> 1);
+                const offset = this.rng.nextInt(0, this.roomHeight - width - 1);
+                room.set(ATTR_PASS_E_WIDTH, width);
+                room.set(ATTR_PASS_E_OFFSET, offset);
             }
 
-            // ── South passage ─────────────────────────────────────────────────
-            // The wall block spans WALL_SIZE rows starting at y = oy + ROOM_SIZE.
-            // The opening is centred in the room's X span.
             if (room.hasPassage('S')) {
-                const pw = this.rng.nextInt(PASS_MIN, PASS_MAX);
-                const wallStartY = oy + ROOM_SIZE;
-                const passStartX = ox + Math.floor((ROOM_SIZE - pw) / 2);
-                for (let wy = 0; wy < WALL_SIZE; wy++) {
-                    for (let i = 0; i < pw; i++) {
-                        this.setCellValue(passStartX + i, wallStartY + wy, PRIM_CELL_FLOOR);
+                const width = this.rng.nextInt(3, this.roomWidth >> 1);
+                const offset = this.rng.nextInt(0, this.roomWidth - width - 1);
+                room.set(ATTR_PASS_S_WIDTH, width);
+                room.set(ATTR_PASS_S_OFFSET, offset);
+            }
+
+            room.set(ATTR_ROCK_DENSITY, this.rng.nextFloat(0.75, 0.95));
+        });
+    }
+
+    // ── Step 4: Room rendering ────────────────────────────────────────────────
+
+    /**
+     * For each room, build a dedicated NumberGrid (rw × rh), then draw
+     * Bresenham lines from every cell of a 5×5 block centred on the interior
+     * to every cell of every open passage entrance. The result is stamped into
+     * the main cell map with copyArea.
+     *
+     * Passage geometry
+     * ----------------
+     *   E slot  x = rw-1, y ∈ [offset, offset+width-1]  — inside local grid ✓
+     *   S slot  y = rh-1, x ∈ [offset, offset+width-1]  — inside local grid ✓
+     *   N entry y = 0,    x ∈ [offset, offset+width-1]  — metrics from north neighbour
+     *   W entry x = 0,    y ∈ [offset, offset+width-1]  — metrics from west  neighbour
+     *
+     * N/W passage slots live in the adjacent room's grid; we target the
+     * interior boundary (y=0 / x=0) and the adjacent room carves the wall slot.
+     * adjacentRooms is used first; roomAt() serves as fallback for passages
+     * created by PrimLabyrinth.generate() which bypasses openPassage().
+     */
+    private _renderEachRoom(): void {
+        const rw = this.roomWidth;
+        const rh = this.roomHeight;
+        // Centre of the room interior in local coordinates
+        const cx = Math.floor((rw - 2) / 2);
+        const cy = Math.floor((rh - 2) / 2);
+
+        this.maze.forEach((room, rx, ry) => {
+            const ox = 1 + rx * rw;
+            const oy = 1 + ry * rh;
+
+            const grid = new NumberGrid(rw, rh);
+            grid.walkCells(() => PRIM_CELL_WALL);
+
+            // ── Collect passage target cells (local coords) ───────────────────
+
+            const targets: Array<{ x: number; y: number }> = [];
+
+            // E: slot in rightmost column, inside local grid
+            if (room.hasPassage('E')) {
+                const width = room.get<number>(ATTR_PASS_E_WIDTH) ?? 0;
+                const offset = room.get<number>(ATTR_PASS_E_OFFSET) ?? 0;
+                for (let i = 0; i < width; i++) {
+                    targets.push({ x: rw - 1, y: offset + i });
+                }
+            }
+
+            // S: slot in bottom row, inside local grid
+            if (room.hasPassage('S')) {
+                const width = room.get<number>(ATTR_PASS_S_WIDTH) ?? 0;
+                const offset = room.get<number>(ATTR_PASS_S_OFFSET) ?? 0;
+                for (let i = 0; i < width; i++) {
+                    targets.push({ x: offset + i, y: rh - 1 });
+                }
+            }
+
+            // N: slot belongs to north neighbour — target interior top edge (y=0)
+            if (room.hasPassage('N')) {
+                const northRoom = room.adjacentRooms.get('N') ?? this.maze.roomAt(rx, ry - 1);
+                if (northRoom) {
+                    const width: number = northRoom.get(ATTR_PASS_S_WIDTH) ?? 0;
+                    const offset: number = northRoom.get(ATTR_PASS_S_OFFSET) ?? 0;
+                    for (let i = 0; i < width; i++) {
+                        targets.push({ x: offset + i, y: 0 });
                     }
                 }
             }
 
-            // N and W passages are the mirror of S and E from adjacent rooms;
-            // they are already carved when those rooms are processed.
+            // W: slot belongs to west neighbour — target interior left edge (x=0)
+            if (room.hasPassage('W')) {
+                const westRoom = room.adjacentRooms.get('W') ?? this.maze.roomAt(rx - 1, ry);
+                if (westRoom) {
+                    const width = westRoom.get<number>(ATTR_PASS_E_WIDTH) ?? 0;
+                    const offset = westRoom.get<number>(ATTR_PASS_E_OFFSET) ?? 0;
+                    for (let i = 0; i < width; i++) {
+                        targets.push({ x: 0, y: offset + i });
+                    }
+                }
+            }
+
+            // ── Bresenham lines from 5×5 centre block to every target cell ────
+
+            const centralBockSizeX = this.rng.nextInt(5, this.roomWidth >> 1);
+            const centralBockSizeY = this.rng.nextInt(5, this.roomHeight >> 1);
+
+            for (let bdy = -centralBockSizeY >> 1; bdy <= centralBockSizeY >> 1; bdy++) {
+                for (let bdx = -centralBockSizeX >> 1; bdx <= centralBockSizeX >> 1; bdx++) {
+                    for (const { x: tx, y: ty } of targets) {
+                        line(cx + bdx, cy + bdy, tx, ty, (x, y) => {
+                            if (x >= 0 && x < rw && y >= 0 && y < rh) {
+                                grid.setCellValue(x, y, PRIM_CELL_FLOOR);
+                            }
+                        });
+                    }
+                }
+            }
+
+            // const rockDensity = room.get<number>(ATTR_ROCK_DENSITY) ?? 0;
+            // grid.walkCells((x: number, y: number, value) => {
+            //     if (x > 2 && y > 2 && x < this.roomWidth - 2 && y < this.roomHeight - 2) {
+            //         return value === PRIM_CELL_WALL && this.rng.nextBool(rockDensity)
+            //             ? PRIM_CELL_WALL
+            //             : PRIM_CELL_FLOOR;
+            //     } else {
+            //         return value;
+            //     }
+            // });
+
+            // const conway = new ConwayGrid(grid.width, grid.height);
+            // conway.copyArea(grid, 0, 0, grid.width, grid.height, 0, 0);
+            // conway.setRules(CONWAY_CAVE);
+            // conway.step(1);
+            // grid.copyArea(conway, 0, 0, grid.width, grid.height, 0, 0);
+
+            // ── Stamp into the main cell map ──────────────────────────────────
+            this.copyArea(grid, 0, 0, rw, rh, ox, oy);
         });
     }
 }

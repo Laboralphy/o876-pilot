@@ -5,4 +5,5 @@ export {
     CONWAY_HIGHLIFE,
     CONWAY_MAZE,
     CONWAY_DIAMOEBA,
+    CONWAY_CAVE,
 } from './ConwayRules';
