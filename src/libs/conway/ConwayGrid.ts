@@ -29,6 +29,12 @@ export class ConwayGrid extends NumberGrid {
         this.rules = rules;
     }
 
+    clone(): this {
+        const copy = new ConwayGrid(this._width, this._height, this.rules) as this;
+        copy.copyArea(this, 0, 0, this._width, this._height, 0, 0);
+        return copy;
+    }
+
     /** Replace the rule set without resetting the grid. */
     setRules(rules: ConwayRules): void {
         this.rules = rules;

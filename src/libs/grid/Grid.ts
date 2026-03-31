@@ -99,10 +99,24 @@ export abstract class Grid<T> implements IGrid<T> {
         }
     }
 
+    /** Return a deep copy of this grid as a new instance of the same concrete type. */
+    abstract clone(): this;
+
     walkCells(walker: (x: number, y: number, value: T) => T): void {
+        const oClone: T[][] = [];
+        for (let y = 0; y < this._height; ++y) {
+            const oRow: T[] = [];
+            for (let x = 0; x < this._width; ++x) {
+                const c = this.getCellValue(x, y);
+                if (c !== undefined) {
+                    oRow.push(this.copyCell(c));
+                }
+            }
+            oClone.push(oRow);
+        }
         for (let y = 0; y < this._height; ++y) {
             for (let x = 0; x < this._width; ++x) {
-                const value = this.getCellValue(x, y);
+                const value = oClone[y]?.[x];
                 if (value !== undefined) {
                     this.setCellValue(x, y, walker(x, y, value));
                 }

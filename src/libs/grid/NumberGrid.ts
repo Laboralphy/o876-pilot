@@ -16,4 +16,10 @@ export class NumberGrid extends Grid<number> {
     copyCell(value: number): number {
         return value;
     }
+
+    clone(): this {
+        const copy = new NumberGrid(this._width, this._height) as this;
+        copy.copyArea(this, 0, 0, this._width, this._height, 0, 0);
+        return copy;
+    }
 }

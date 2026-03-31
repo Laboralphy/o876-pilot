@@ -3,4 +3,5 @@ export interface IGrid<T> {
     get height(): number;
     setCellValue(x: number, y: number, value: T): void;
     getCellValue(x: number, y: number): T | undefined;
+    clone(): IGrid<T>;
 }

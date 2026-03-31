@@ -1,15 +1,16 @@
 import { WordGenerator } from '../WorldGenerator';
 import type { ISeededRNG } from '../../libs/mulberry32/ISeededRNG';
-import { PrimLabyrinth, Direction } from '../../libs/prim';
+import { Direction, PrimLabyrinth } from '../../libs/prim';
 import { IDaedalus } from '../../libs/daedalus';
 import { NumberGrid } from '../../libs/grid/NumberGrid';
 import { line } from '../../libs/bresenham';
-import { CONWAY_CAVE, ConwayGrid } from '../../libs/conway';
 
 // ─── Cell values ─────────────────────────────────────────────────────────────
 
 export const PRIM_CELL_FLOOR = 0;
 export const PRIM_CELL_WALL = 1;
+export const PRIM_CELL_WALL_DEPTH_1 = 2;
+export const PRIM_CELL_WALL_DEPTH_2 = 3;
 
 // ─── Room passage attribute keys ─────────────────────────────────────────────
 // Stored on the room that owns the passage (E or S direction).
@@ -100,7 +101,57 @@ export class PrimMazeWG extends WordGenerator {
         this.walkCells(() => PRIM_CELL_WALL);
         this._renderEachRoom();
 
+        // 5. Walls fully surrounded by walls → depth-1 wall
+        this._markDepthWalls();
+
         return this.cellMap;
+    }
+
+    // ── Step 5: Depth classification ─────────────────────────────────────────
+
+    /**
+     * Two erosion passes to classify wall depth:
+     *   DEPTH_1 — WALL with no floor neighbour (1+ cells from any floor)
+     *   DEPTH_2 — DEPTH_1 with no plain WALL neighbour (2+ cells from any floor)
+     */
+    private _markDepthWalls(): void {
+        // Pass 1: WALL cells with no floor neighbour → DEPTH_1
+        this.walkCells((x, y, value) => {
+            if (value !== PRIM_CELL_WALL) {
+                return value;
+            }
+            for (let dy = -1; dy <= 1; dy++) {
+                for (let dx = -1; dx <= 1; dx++) {
+                    if (dx === 0 && dy === 0) {
+                        continue;
+                    }
+                    const v = this.getCellValue(x + dx, y + dy);
+                    if (v === PRIM_CELL_FLOOR) {
+                        return value;
+                    }
+                }
+            }
+            return PRIM_CELL_WALL_DEPTH_1;
+        });
+
+        // Pass 2: DEPTH_1 cells with no plain WALL neighbour → DEPTH_2
+        this.walkCells((x, y, value) => {
+            if (value !== PRIM_CELL_WALL_DEPTH_1) {
+                return value;
+            }
+            for (let dy = -1; dy <= 1; dy++) {
+                for (let dx = -1; dx <= 1; dx++) {
+                    if (dx === 0 && dy === 0) {
+                        continue;
+                    }
+                    const v = this.getCellValue(x + dx, y + dy);
+                    if (v === PRIM_CELL_WALL) {
+                        return value;
+                    }
+                }
+            }
+            return PRIM_CELL_WALL_DEPTH_2;
+        });
     }
 
     // ── Step 2: Centre braiding ───────────────────────────────────────────────
@@ -179,8 +230,6 @@ export class PrimMazeWG extends WordGenerator {
         const rw = this.roomWidth;
         const rh = this.roomHeight;
         // Centre of the room interior in local coordinates
-        const cx = Math.floor((rw - 2) / 2);
-        const cy = Math.floor((rh - 2) / 2);
 
         this.maze.forEach((room, rx, ry) => {
             const ox = 1 + rx * rw;
@@ -254,35 +303,6 @@ export class PrimMazeWG extends WordGenerator {
                     }
                 }
             }
-
-            // for (let bdy = -centralBockSizeY >> 1; bdy <= centralBockSizeY >> 1; bdy++) {
-            //     for (let bdx = -centralBockSizeX >> 1; bdx <= centralBockSizeX >> 1; bdx++) {
-            //         for (const { x: tx, y: ty } of targets) {
-            //             line(cx + bdx, cy + bdy, tx, ty, (x, y) => {
-            //                 if (x >= 0 && x < rw && y >= 0 && y < rh) {
-            //                     grid.setCellValue(x, y, PRIM_CELL_FLOOR);
-            //                 }
-            //             });
-            //         }
-            //     }
-            // }
-
-            // const rockDensity = room.get<number>(ATTR_ROCK_DENSITY) ?? 0;
-            // grid.walkCells((x: number, y: number, value) => {
-            //     if (x > 2 && y > 2 && x < this.roomWidth - 2 && y < this.roomHeight - 2) {
-            //         return value === PRIM_CELL_WALL && this.rng.nextBool(rockDensity)
-            //             ? PRIM_CELL_WALL
-            //             : PRIM_CELL_FLOOR;
-            //     } else {
-            //         return value;
-            //     }
-            // });
-
-            // const conway = new ConwayGrid(grid.width, grid.height);
-            // conway.copyArea(grid, 0, 0, grid.width, grid.height, 0, 0);
-            // conway.setRules(CONWAY_CAVE);
-            // conway.step(1);
-            // grid.copyArea(conway, 0, 0, grid.width, grid.height, 0, 0);
 
             // ── Stamp into the main cell map ──────────────────────────────────
             this.copyArea(grid, 0, 0, rw, rh, ox, oy);
