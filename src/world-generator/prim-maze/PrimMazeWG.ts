@@ -71,8 +71,8 @@ export class PrimMazeWG extends WordGenerator {
     private readonly roomHeight: number;
 
     constructor(rng: ISeededRNG, width: number, height: number) {
-        const rh = rng.nextInt(9, 15);
-        const rw = rh + rng.nextInt(2, 5);
+        const rh = rng.nextInt(13, 19);
+        const rw = rh + rng.nextInt(5, 9);
         const roomsX = Math.max(1, Math.floor((width - 1) / rw));
         const roomsY = Math.max(1, Math.floor((height - 1) / rh));
         super(roomsX * rw + 1, roomsY * rh + 1);
@@ -237,20 +237,35 @@ export class PrimMazeWG extends WordGenerator {
 
             // ── Bresenham lines from 5×5 centre block to every target cell ────
 
-            const centralBockSizeX = this.rng.nextInt(5, this.roomWidth >> 1);
-            const centralBockSizeY = this.rng.nextInt(5, this.roomHeight >> 1);
+            const radius = this.rng.nextFloat(1.5, Math.min(rw, rh) / 2 - 1.5);
+            const xCenter = Math.floor(this.roomWidth / 2);
+            const yCenter = Math.floor(this.roomHeight / 2);
 
-            for (let bdy = -centralBockSizeY >> 1; bdy <= centralBockSizeY >> 1; bdy++) {
-                for (let bdx = -centralBockSizeX >> 1; bdx <= centralBockSizeX >> 1; bdx++) {
-                    for (const { x: tx, y: ty } of targets) {
-                        line(cx + bdx, cy + bdy, tx, ty, (x, y) => {
-                            if (x >= 0 && x < rw && y >= 0 && y < rh) {
-                                grid.setCellValue(x, y, PRIM_CELL_FLOOR);
-                            }
-                        });
+            for (let bdy = 0; bdy <= this.roomHeight; bdy++) {
+                for (let bdx = 0; bdx <= this.roomWidth; bdx++) {
+                    if (Math.hypot(Math.abs(bdx - xCenter), Math.abs(bdy - yCenter)) < radius) {
+                        for (const { x: tx, y: ty } of targets) {
+                            line(bdx, bdy, tx, ty, (x, y) => {
+                                if (x >= 0 && x < rw && y >= 0 && y < rh) {
+                                    grid.setCellValue(x, y, PRIM_CELL_FLOOR);
+                                }
+                            });
+                        }
                     }
                 }
             }
+
+            // for (let bdy = -centralBockSizeY >> 1; bdy <= centralBockSizeY >> 1; bdy++) {
+            //     for (let bdx = -centralBockSizeX >> 1; bdx <= centralBockSizeX >> 1; bdx++) {
+            //         for (const { x: tx, y: ty } of targets) {
+            //             line(cx + bdx, cy + bdy, tx, ty, (x, y) => {
+            //                 if (x >= 0 && x < rw && y >= 0 && y < rh) {
+            //                     grid.setCellValue(x, y, PRIM_CELL_FLOOR);
+            //                 }
+            //             });
+            //         }
+            //     }
+            // }
 
             // const rockDensity = room.get<number>(ATTR_ROCK_DENSITY) ?? 0;
             // grid.walkCells((x: number, y: number, value) => {
