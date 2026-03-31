@@ -40,6 +40,13 @@
                     "animations": [],
                     "attributes": { "solid": 1, "transparent": 0 },
                     "tags": ["rock"]
+                },
+                {
+                    "cell": 3,
+                    "tiles": [30, 31, 32, 33, 34, 35],
+                    "animations": [],
+                    "attributes": { "solid": 1, "transparent": 0 },
+                    "tags": ["rock"]
                 }
             ]
         },
