@@ -14,6 +14,8 @@ import { createRNGFromString } from '../libs/mulberry32';
 import { createTileRenderer } from '../tile-renderer';
 import { createWorldGenerator } from '../world-generator';
 import { ITextureSource } from '../tile-renderer/ITextureSource';
+import { createBulletTexture } from '../sprite-renderer/bullet-texture';
+import { createExhaustTexture } from '../sprite-renderer/exhaust-texture';
 
 export type { CoordinateList, TileMapLayerDefinition };
 
@@ -50,10 +52,6 @@ type Controls = {
     rotateCCW: Phaser.Input.Keyboard.Key;
     fire: Phaser.Input.Keyboard.Key;
     altFire: Phaser.Input.Keyboard.Key;
-    boost: Phaser.Input.Keyboard.Key;
-    left: Phaser.Input.Keyboard.Key;
-    right: Phaser.Input.Keyboard.Key;
-    up: Phaser.Input.Keyboard.Key;
     down: Phaser.Input.Keyboard.Key;
 };
 
@@ -67,6 +65,7 @@ export abstract class WorldScene extends Phaser.Scene implements IPhysicsReader 
     protected readonly layers = new Map<string, AnyLayer>();
     protected readonly animations = new Map<string, Map<string, AnimationRegistry>>();
     protected layerDefinitions: TileMapLayerDefinition[] = [];
+    protected _physicLayer: TileMapLayerDefinition | undefined;
     protected worldWidth: number = 0; // in pixels
     protected worldHeight: number = 0; // in pixels
     protected controls: Controls | undefined = undefined;
@@ -227,15 +226,11 @@ export abstract class WorldScene extends Phaser.Scene implements IPhysicsReader 
         // Régénération
         // this.input.keyboard.on('keydown-R', () => this._regenerate());
         this.controls = this.input.keyboard!.addKeys({
-            thrust: Phaser.Input.Keyboard.KeyCodes.Z,
-            rotateCW: Phaser.Input.Keyboard.KeyCodes.D,
-            rotateCCW: Phaser.Input.Keyboard.KeyCodes.Q,
-            fire: Phaser.Input.Keyboard.KeyCodes.F,
+            thrust: Phaser.Input.Keyboard.KeyCodes.UP,
+            rotateCW: Phaser.Input.Keyboard.KeyCodes.RIGHT,
+            rotateCCW: Phaser.Input.Keyboard.KeyCodes.LEFT,
+            fire: Phaser.Input.Keyboard.KeyCodes.SPACE,
             altFire: Phaser.Input.Keyboard.KeyCodes.SHIFT,
-            boost: Phaser.Input.Keyboard.KeyCodes.SPACE,
-            left: Phaser.Input.Keyboard.KeyCodes.LEFT,
-            right: Phaser.Input.Keyboard.KeyCodes.RIGHT,
-            up: Phaser.Input.Keyboard.KeyCodes.UP,
             down: Phaser.Input.Keyboard.KeyCodes.DOWN,
         }) as typeof this.controls;
     }
@@ -336,24 +331,34 @@ export abstract class WorldScene extends Phaser.Scene implements IPhysicsReader 
      * Only layers with scrollFactor === 1 are considered (parallax layers are visual only).
      */
     isSolid(worldX: number, worldY: number): boolean {
-        return this.getPhysicsCell(worldX, worldY)?.solid ?? false;
+        const pl = this.physicLayer;
+        const cellX = Math.floor(worldX / pl.tileSize);
+        const cellY = Math.floor(worldY / pl.tileSize);
+        return this.getPhysicCell(cellX, cellY)?.solid ?? false;
+    }
+
+    get physicLayer(): TileMapLayerDefinition {
+        if (this._physicLayer) {
+            return this._physicLayer;
+        }
+        for (const ld of this.layerDefinitions) {
+            if (ld.physicsMap) {
+                this._physicLayer = ld;
+                return ld;
+            }
+        }
+        throw new Error('Unable to get physic layer');
     }
 
     /**
      * Returns the PhysicsCell at the given world pixel coordinates, or null if the cell is empty.
      * Only layers with scrollFactor === 1 are considered.
      */
-    getPhysicsCell(worldX: number, worldY: number): PhysicsCell | null {
-        for (const ld of this.layerDefinitions) {
-            if (!ld.physicsMap) {
-                continue;
-            }
-            const cellX = Math.floor(worldX / ld.tileSize);
-            const cellY = Math.floor(worldY / ld.tileSize);
-            const cell = ld.physicsMap[cellY]?.[cellX];
-            if (cell) {
-                return cell;
-            }
+    getPhysicCell(cellX: number, cellY: number): PhysicsCell | null {
+        const pl = this.physicLayer;
+        const cell = pl.physicsMap?.[cellY]?.[cellX];
+        if (cell) {
+            return cell;
         }
         return null;
     }
@@ -408,6 +413,10 @@ export abstract class WorldScene extends Phaser.Scene implements IPhysicsReader 
 
     create() {
         this._buildLevel(this.options.level, this.options.level.key);
+        // Bullet spritesheet: 4 frames × 8×8 px, generated at runtime via canvas
+        // (same pattern as tile textures — no external PNG required).
+        this.textures.addCanvas('bullet', createBulletTexture());
+        this.textures.addCanvas('exhaust', createExhaustTexture());
         this._createResources();
         this._setupCamera();
         this._setupInput();
@@ -415,6 +424,8 @@ export abstract class WorldScene extends Phaser.Scene implements IPhysicsReader 
         this._updateHUD();
         const spriteLayer = this.add.layer().setDepth(10);
         this.layers.set('sprites', spriteLayer);
+        const particleLayer = this.add.layer().setDepth(9);
+        this.layers.set('particles', particleLayer);
         this.events.once('shutdown', () => this._destroyAllResources());
         this.events.once('destroy', () => this._destroyAllResources());
     }
@@ -435,7 +446,6 @@ export abstract class WorldScene extends Phaser.Scene implements IPhysicsReader 
                 rotateCCW: false,
                 fire: false,
                 altFire: false,
-                boost: false,
             };
         }
         return {
@@ -444,7 +454,6 @@ export abstract class WorldScene extends Phaser.Scene implements IPhysicsReader 
             rotateCCW: c.rotateCCW.isDown,
             fire: c.fire.isDown,
             altFire: c.altFire.isDown,
-            boost: c.boost.isDown,
         };
     }
 

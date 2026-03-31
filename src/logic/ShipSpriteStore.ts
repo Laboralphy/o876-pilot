@@ -1,10 +1,11 @@
 import { SpriteStore } from '../world-scene/SpriteStore';
 import { IControlState } from '../world-scene/IControlState';
 import { IPhysicsReader } from '../world-scene/IPhysicsReader';
+import { WeaponLogic } from './WeaponLogic';
+import { MultiCannonLogic } from './MultiCannonLogic';
 
 const ROTATE_SPEED = 3; // degrees per frame
 const THRUST_ACC = 0.3; // px/frame² — terminal velocity ~15px/frame
-const BOOST_ACC = 0.6; // px/frame² — reaches cap faster
 const DRAG = 0.98; // speed multiplier per frame (viscosity)
 const MAX_SPEED = 16; // px/frame
 const BOUNCE = -0.4; // bounce factor (reverses + dampens to 40%)
@@ -14,6 +15,8 @@ const GRAVITY_FALL = 0.1;
 export class ShipSpriteStore extends SpriteStore {
     xspeed: number = 0;
     yspeed: number = 0;
+
+    readonly _weapon: WeaponLogic = new MultiCannonLogic();
 
     constructor(id: string) {
         super(id, 'spaceship');
@@ -41,11 +44,10 @@ export class ShipSpriteStore extends SpriteStore {
 
         this.yspeed += GRAVITY_FALL;
         // Thrust: accelerate along facing direction
-        if (control.thrust || control.boost) {
-            const acc = control.boost ? BOOST_ACC : THRUST_ACC;
+        if (control.thrust) {
             const rad = (this.angle * Math.PI) / 180;
-            this.xspeed += Math.sin(rad) * acc;
-            this.yspeed -= Math.cos(rad) * acc;
+            this.xspeed += Math.sin(rad) * THRUST_ACC;
+            this.yspeed -= Math.cos(rad) * THRUST_ACC;
         }
 
         // Drag
@@ -53,7 +55,7 @@ export class ShipSpriteStore extends SpriteStore {
         this.yspeed *= DRAG;
 
         // Speed cap
-        const norm = Math.sqrt(this.xspeed ** 2 + this.yspeed ** 2);
+        const norm = Math.hypot(this.xspeed, this.yspeed);
         if (norm > MAX_SPEED) {
             const ratio = MAX_SPEED / norm;
             this.xspeed *= ratio;
@@ -76,7 +78,9 @@ export class ShipSpriteStore extends SpriteStore {
             this.y = nextY;
         }
 
+        this._weapon.update(control, this.x, this.y, this.angle);
+
         // Frame
-        this.frame = control.boost ? 2 : control.thrust ? 1 : 0;
+        this.frame = control.thrust ? 1 : 0;
     }
 }

@@ -4,5 +4,4 @@ export interface IControlState {
     rotateCCW: boolean;
     fire: boolean;
     altFire: boolean;
-    boost: boolean;
 }
