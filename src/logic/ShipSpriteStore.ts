@@ -15,6 +15,8 @@ const GRAVITY_FALL = 0.1;
 export class ShipSpriteStore extends SpriteStore {
     xspeed: number = 0;
     yspeed: number = 0;
+    /** Speed at the moment of the last wall collision this frame (px/frame). 0 if no collision. */
+    collisionStrength: number = 0;
 
     readonly _weapon: WeaponLogic = new MultiCannonLogic();
 
@@ -34,6 +36,8 @@ export class ShipSpriteStore extends SpriteStore {
     }
 
     update(control: IControlState, physics: IPhysicsReader): void {
+        this.collisionStrength = 0;
+
         // Rotation
         if (control.rotateCW) {
             this.angle += ROTATE_SPEED;
@@ -65,6 +69,7 @@ export class ShipSpriteStore extends SpriteStore {
         // Move X with collision
         const nextX = this.x + this.xspeed;
         if (this.xspeed !== 0 && this._hitsX(nextX, physics)) {
+            this.collisionStrength = Math.max(this.collisionStrength, Math.hypot(this.xspeed, this.yspeed));
             this.xspeed *= BOUNCE;
         } else {
             this.x = nextX;
@@ -73,6 +78,7 @@ export class ShipSpriteStore extends SpriteStore {
         // Move Y with collision
         const nextY = this.y + this.yspeed;
         if (this.yspeed !== 0 && this._hitsY(nextY, physics)) {
+            this.collisionStrength = Math.max(this.collisionStrength, Math.hypot(this.xspeed, this.yspeed));
             this.yspeed *= BOUNCE;
         } else {
             this.y = nextY;

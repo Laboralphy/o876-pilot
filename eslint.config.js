@@ -16,6 +16,7 @@ export default tseslint.config(
             '@typescript-eslint/explicit-function-return-type': 'off',
             'no-fallthrough': 'error', // Détecte les fall-through non intentionnels
             'default-case': 'error', // Optionnel : force un default dans les switch
+            'curly': 'error', // Braces required for all control structures (if, else, while, for)
         },
         languageOptions: {
             parserOptions: {

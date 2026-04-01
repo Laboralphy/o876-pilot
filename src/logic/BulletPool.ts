@@ -48,7 +48,9 @@ export class BulletPool {
      */
     fire(x: number, y: number, angle: number): void {
         const slot = this._slots.find((s) => !s.store.active);
-        if (!slot) return;
+        if (!slot) {
+            return;
+        }
         slot.store.activate(x, y, angle);
         slot.sprite.setVisible(true);
     }
@@ -59,7 +61,9 @@ export class BulletPool {
      */
     update(physics: IPhysicsReader): void {
         for (const { store, sprite } of this._slots) {
-            if (!store.active) continue;
+            if (!store.active) {
+                continue;
+            }
 
             const expired = store.updateBullet(physics);
             if (expired) {

@@ -45,14 +45,16 @@ export class TypicalScene extends WorldScene {
                 const cy = rowY + half;
                 const aboveCy = rowY - half;
 
-                const cellSolid = this.getPhysicCell(cx, cy)?.solid ?? false;
+                const cellSolid = this.getPhysicsCell(cx, cy)?.solid ?? false;
                 const aboveSolid =
-                    aboveCy >= 0 ? (this.getPhysicCell(cx, aboveCy)?.solid ?? false) : false;
+                    aboveCy >= 0 ? (this.getPhysicsCell(cx, aboveCy)?.solid ?? false) : false;
 
                 const isPlatformCell = cellSolid && !aboveSolid;
 
                 if (isPlatformCell) {
-                    if (runStart === null) runStart = colX;
+                    if (runStart === null) {
+                        runStart = colX;
+                    }
                     runLength += tileSize;
                 } else {
                     if (runStart !== null) {
@@ -120,7 +122,10 @@ export class TypicalScene extends WorldScene {
 
         // ship.frame === 1 means thrust is active (set by ShipSpriteStore.update)
         if (ship && ship.frame === 1) {
-            this._exhaustSystem?.emit(ship.x, ship.y, ship.angle);
+            this._exhaustSystem?.emitExhaust(ship.x, ship.y, ship.angle);
+        }
+        if (ship && ship.collisionStrength > 0) {
+            this._exhaustSystem?.emitDebris(ship.x, ship.y, ship.collisionStrength);
         }
         this._exhaustSystem?.update();
     }

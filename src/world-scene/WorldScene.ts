@@ -16,6 +16,7 @@ import { createWorldGenerator } from '../world-generator';
 import { ITextureSource } from '../tile-renderer/ITextureSource';
 import { createBulletTexture } from '../sprite-renderer/bullet-texture';
 import { createExhaustTexture } from '../sprite-renderer/exhaust-texture';
+import { createDebrisTexture } from '../sprite-renderer/debris-texture';
 
 export type { CoordinateList, TileMapLayerDefinition };
 
@@ -334,7 +335,7 @@ export abstract class WorldScene extends Phaser.Scene implements IPhysicsReader 
         const pl = this.physicLayer;
         const cellX = Math.floor(worldX / pl.tileSize);
         const cellY = Math.floor(worldY / pl.tileSize);
-        return this.getPhysicCell(cellX, cellY)?.solid ?? false;
+        return this.getPhysicsCell(cellX, cellY)?.solid ?? false;
     }
 
     get physicLayer(): TileMapLayerDefinition {
@@ -354,7 +355,7 @@ export abstract class WorldScene extends Phaser.Scene implements IPhysicsReader 
      * Returns the PhysicsCell at the given world pixel coordinates, or null if the cell is empty.
      * Only layers with scrollFactor === 1 are considered.
      */
-    getPhysicCell(cellX: number, cellY: number): PhysicsCell | null {
+    getPhysicsCell(cellX: number, cellY: number): PhysicsCell | null {
         const pl = this.physicLayer;
         const cell = pl.physicsMap?.[cellY]?.[cellX];
         if (cell) {
@@ -417,6 +418,7 @@ export abstract class WorldScene extends Phaser.Scene implements IPhysicsReader 
         // (same pattern as tile textures — no external PNG required).
         this.textures.addCanvas('bullet', createBulletTexture());
         this.textures.addCanvas('exhaust', createExhaustTexture());
+        this.textures.addCanvas('debris', createDebrisTexture());
         this._createResources();
         this._setupCamera();
         this._setupInput();
