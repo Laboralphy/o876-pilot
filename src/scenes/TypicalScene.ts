@@ -110,6 +110,19 @@ export class TypicalScene extends WorldScene {
         this._exhaustSystem = new ParticleSystem(this, particleLayer);
     }
 
+    preload() {
+        this.load.spritesheet('spaceship', 'assets/sprites/spaceship.png', {
+            frameWidth: 48,
+            frameHeight: 48,
+        });
+        this.load.spritesheet('bullet', 'assets/sprites/bullet.png', {
+            frameWidth: 16,
+            frameHeight: 16,
+        });
+        this.load.image('exhaust', 'assets/sprites/exhaust-16.png');
+        this.load.image('debris', 'assets/sprites/debris.png');
+    }
+
     update(time: number, delta: number): void {
         super.update(time, delta);
 

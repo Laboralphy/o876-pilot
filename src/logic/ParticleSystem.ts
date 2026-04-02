@@ -26,7 +26,7 @@ const TEXTURE_DEBRIS = 'debris';
 // ─── Exhaust constants ───────────────────────────────────────────────────────
 
 /** Particles emitted per frame while thrusting. */
-const EXHAUST_PARTICLES_PER_EMIT = 3;
+const EXHAUST_PARTICLES_PER_EMIT = 1;
 /** Distance behind the owner's center where particles spawn (px). */
 const EXHAUST_OFFSET = 16;
 /** Base ejection speed (px/frame). */

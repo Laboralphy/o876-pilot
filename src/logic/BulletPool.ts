@@ -34,11 +34,12 @@ export class BulletPool {
         layer: Phaser.GameObjects.Layer,
         poolSize: number,
         namespace: string,
-        spriteRef: string
+        spriteRef: string,
+        frame: number = 0
     ) {
         for (let i = 0; i < poolSize; i++) {
             const store = new BulletSpriteStore(`${namespace}-${i}`);
-            const sprite = scene.add.sprite(0, 0, spriteRef, 0);
+            const sprite = scene.add.sprite(0, 0, spriteRef, frame);
             sprite.setVisible(false);
             layer.add(sprite);
             this._slots.push({ store, sprite });

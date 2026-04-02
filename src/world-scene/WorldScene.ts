@@ -424,19 +424,6 @@ export abstract class WorldScene extends Phaser.Scene implements IPhysicsReader 
         this.events.once('destroy', () => this._destroyAllResources());
     }
 
-    preload() {
-        this.load.spritesheet('spaceship', 'assets/sprites/spaceship.png', {
-            frameWidth: 48,
-            frameHeight: 48,
-        });
-        this.load.spritesheet('bullet', 'assets/sprites/bullet.png', {
-            frameWidth: 16,
-            frameHeight: 16,
-        });
-        this.load.image('exhaust', 'assets/sprites/exhaust.png');
-        this.load.image('debris', 'assets/sprites/debris.png');
-    }
-
     private _getControlState(): IControlState {
         const c = this.controls;
         if (!c) {

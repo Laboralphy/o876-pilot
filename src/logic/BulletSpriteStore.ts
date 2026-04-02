@@ -68,13 +68,6 @@ export class BulletSpriteStore extends SpriteStore {
             return true;
         }
 
-        // Animate (cycle through 4 brightness frames for energy-pulse effect)
-        this._animTick++;
-        if (this._animTick >= ANIM_FRAMES) {
-            this._animTick = 0;
-            this.frame = (this.frame + 1) % 4;
-        }
-
         const nextX = this.x + this.xSpeed;
         const nextY = this.y + this.ySpeed;
 
