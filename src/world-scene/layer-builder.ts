@@ -65,7 +65,11 @@ class WorldBuilder {
         if (i >= tlen) {
             // animation : we must include the first tile of the animation
             const animKey = wb.animations[i - tlen];
-            if (animKey !== undefined) {
+            if (animKey === undefined) {
+                throw new RangeError(
+                    `Picked up item ${i - tlen} from world block animations, but out-of-range, or undefined in-range item.`
+                );
+            } else {
                 const ad = this.animationDefinitions.find((a) => a.key === animKey);
                 if (ad) {
                     const iTile = this.tileIndexRegistry.get(ad.frames[0] ?? 0);
@@ -83,10 +87,6 @@ class WorldBuilder {
                         `Unknown animation key: ${animKey}. Specified in world block def, but does not match any layerDefinition animations keys`
                     );
                 }
-            } else {
-                throw new RangeError(
-                    `Picked up item ${i - tlen} from world block animations, but out-of-range, or undefined in-range item.`
-                );
             }
         } else {
             // tile : we don't use animation
