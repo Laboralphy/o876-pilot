@@ -13,8 +13,8 @@ const SHIP_RADIUS = 14; // collision probe radius in pixels
 const GRAVITY_FALL = 0.1;
 
 export class ShipSpriteStore extends SpriteStore {
-    xspeed: number = 0;
-    yspeed: number = 0;
+    xSpeed: number = 0;
+    ySpeed: number = 0;
     /** Speed at the moment of the last wall collision this frame (px/frame). 0 if no collision. */
     collisionStrength: number = 0;
 
@@ -26,12 +26,12 @@ export class ShipSpriteStore extends SpriteStore {
     }
 
     private _hitsX(nextX: number, physics: IPhysicsReader): boolean {
-        const edge = nextX + Math.sign(this.xspeed) * SHIP_RADIUS;
+        const edge = nextX + Math.sign(this.xSpeed) * SHIP_RADIUS;
         return [-SHIP_RADIUS, 0, SHIP_RADIUS].some((dy) => physics.isSolid(edge, this.y + dy));
     }
 
     private _hitsY(nextY: number, physics: IPhysicsReader): boolean {
-        const edge = nextY + Math.sign(this.yspeed) * SHIP_RADIUS;
+        const edge = nextY + Math.sign(this.ySpeed) * SHIP_RADIUS;
         return [-SHIP_RADIUS, 0, SHIP_RADIUS].some((dx) => physics.isSolid(this.x + dx, edge));
     }
 
@@ -46,40 +46,46 @@ export class ShipSpriteStore extends SpriteStore {
             this.angle -= ROTATE_SPEED;
         }
 
-        this.yspeed += GRAVITY_FALL;
+        this.ySpeed += GRAVITY_FALL;
         // Thrust: accelerate along facing direction
         if (control.thrust) {
             const rad = (this.angle * Math.PI) / 180;
-            this.xspeed += Math.sin(rad) * THRUST_ACC;
-            this.yspeed -= Math.cos(rad) * THRUST_ACC;
+            this.xSpeed += Math.sin(rad) * THRUST_ACC;
+            this.ySpeed -= Math.cos(rad) * THRUST_ACC;
         }
 
         // Drag
-        this.xspeed *= DRAG;
-        this.yspeed *= DRAG;
+        this.xSpeed *= DRAG;
+        this.ySpeed *= DRAG;
 
         // Speed cap
-        const norm = Math.hypot(this.xspeed, this.yspeed);
+        const norm = Math.hypot(this.xSpeed, this.ySpeed);
         if (norm > MAX_SPEED) {
             const ratio = MAX_SPEED / norm;
-            this.xspeed *= ratio;
-            this.yspeed *= ratio;
+            this.xSpeed *= ratio;
+            this.ySpeed *= ratio;
         }
 
         // Move X with collision
-        const nextX = this.x + this.xspeed;
-        if (this.xspeed !== 0 && this._hitsX(nextX, physics)) {
-            this.collisionStrength = Math.max(this.collisionStrength, Math.hypot(this.xspeed, this.yspeed));
-            this.xspeed *= BOUNCE;
+        const nextX = this.x + this.xSpeed;
+        if (this.xSpeed !== 0 && this._hitsX(nextX, physics)) {
+            this.collisionStrength = Math.max(
+                this.collisionStrength,
+                Math.hypot(this.xSpeed, this.ySpeed)
+            );
+            this.xSpeed *= BOUNCE;
         } else {
             this.x = nextX;
         }
 
         // Move Y with collision
-        const nextY = this.y + this.yspeed;
-        if (this.yspeed !== 0 && this._hitsY(nextY, physics)) {
-            this.collisionStrength = Math.max(this.collisionStrength, Math.hypot(this.xspeed, this.yspeed));
-            this.yspeed *= BOUNCE;
+        const nextY = this.y + this.ySpeed;
+        if (this.ySpeed !== 0 && this._hitsY(nextY, physics)) {
+            this.collisionStrength = Math.max(
+                this.collisionStrength,
+                Math.hypot(this.xSpeed, this.ySpeed)
+            );
+            this.ySpeed *= BOUNCE;
         } else {
             this.y = nextY;
         }

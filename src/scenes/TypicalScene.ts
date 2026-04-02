@@ -1,7 +1,7 @@
 import { WorldScene, WorldSceneOptions } from '../world-scene/WorldScene';
 import { ShipSpriteStore } from '../logic/ShipSpriteStore';
 import { BulletPool } from '../logic/BulletPool';
-import { ExhaustSystem } from '../logic/ExhaustSystem';
+import { ParticleSystem } from '../logic/ParticleSystem';
 import Phaser from 'phaser';
 
 export type TypicalPlatform = {
@@ -16,7 +16,7 @@ export type TypicalPlatform = {
 export class TypicalScene extends WorldScene {
     protected _platformRegistry: TypicalPlatform[] = [];
     private _bulletPool: BulletPool | undefined;
-    private _exhaustSystem: ExhaustSystem | undefined;
+    private _exhaustSystem: ParticleSystem | undefined;
 
     constructor(options: WorldSceneOptions) {
         super(options);
@@ -32,7 +32,9 @@ export class TypicalScene extends WorldScene {
 
         // Use the smallest tileSize among physics layers as the scan step.
         const physicsLayers = this.layerDefinitions.filter((ld) => ld.physicsMap !== null);
-        if (physicsLayers.length === 0) return;
+        if (physicsLayers.length === 0) {
+            return;
+        }
         const tileSize = Math.min(...physicsLayers.map((ld) => ld.tileSize));
         const half = tileSize / 2;
 
@@ -100,12 +102,12 @@ export class TypicalScene extends WorldScene {
         oSpriteLayer.add(shipSprite);
         this.cameras.main.startFollow(shipSprite);
 
-        this._bulletPool = new BulletPool(this, oSpriteLayer);
+        this._bulletPool = new BulletPool(this, oSpriteLayer, 100, 'mis-laser', 'bullet');
 
         // Exhaust layer sits just below the sprite layer so particles always
         // render behind ships and bullets.
         const particleLayer = this.layers.get('particles')! as Phaser.GameObjects.Layer;
-        this._exhaustSystem = new ExhaustSystem(this, particleLayer);
+        this._exhaustSystem = new ParticleSystem(this, particleLayer);
     }
 
     update(time: number, delta: number): void {

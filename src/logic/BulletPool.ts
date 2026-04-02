@@ -7,8 +7,6 @@ import { IPhysicsReader } from '../world-scene/IPhysicsReader';
  * With a 4-frame fire cooldown and 60-frame lifetime the pool can sustain
  * continuous fire (60 / 4 = 15 bullets in flight) with comfortable headroom.
  */
-const POOL_SIZE = 96;
-
 type BulletSlot = {
     store: BulletSpriteStore;
     sprite: Phaser.GameObjects.Sprite;
@@ -31,10 +29,16 @@ type BulletSlot = {
 export class BulletPool {
     private readonly _slots: BulletSlot[] = [];
 
-    constructor(scene: Phaser.Scene, layer: Phaser.GameObjects.Layer) {
-        for (let i = 0; i < POOL_SIZE; i++) {
-            const store = new BulletSpriteStore(`bullet-${i}`);
-            const sprite = scene.add.sprite(0, 0, 'bullet', 0);
+    constructor(
+        scene: Phaser.Scene,
+        layer: Phaser.GameObjects.Layer,
+        poolSize: number,
+        namespace: string,
+        spriteRef: string
+    ) {
+        for (let i = 0; i < poolSize; i++) {
+            const store = new BulletSpriteStore(`${namespace}-${i}`);
+            const sprite = scene.add.sprite(0, 0, spriteRef, 0);
             sprite.setVisible(false);
             layer.add(sprite);
             this._slots.push({ store, sprite });

@@ -21,6 +21,8 @@ const DEBRIS_MAX_LIFE = 50;
 
 const DEBRIS_POOL_SIZE = 100;
 
+const TEXTURE_DEBRIS = 'debris';
+
 // ─── Exhaust constants ───────────────────────────────────────────────────────
 
 /** Particles emitted per frame while thrusting. */
@@ -39,6 +41,8 @@ const EXHAUST_MIN_LIFE = 18;
 const EXHAUST_MAX_LIFE = 30;
 
 const EXHAUST_POOL_SIZE = 200;
+
+const TEXTURE_EXHAUST = 'exhaust';
 
 type Particle = {
     active: boolean;
@@ -83,18 +87,18 @@ function _debrisTint(t: number): number {
  * detection is performed.
  *
  * Usage:
- *   const exhaust = new ExhaustSystem(scene, exhaustLayer, 200);
+ *   const exhaust = new ParticleSystem(scene, exhaustLayer, 200);
  *   // each frame:
  *   if (thrusting) exhaust.emit(ship.x, ship.y, ship.angle);
  *   exhaust.update();
  */
-export class ExhaustSystem {
+export class ParticleSystem {
     private readonly _exhaustSlots: ParticleSlot[];
     private readonly _debrisSlots: ParticleSlot[];
 
     constructor(scene: Phaser.Scene, layer: Phaser.GameObjects.Layer) {
         this._exhaustSlots = Array.from({ length: EXHAUST_POOL_SIZE }, () => {
-            const sprite = scene.add.sprite(0, 0, 'exhaust');
+            const sprite = scene.add.sprite(0, 0, TEXTURE_EXHAUST);
             sprite.setVisible(false);
             layer.add(sprite);
             return {
@@ -103,7 +107,7 @@ export class ExhaustSystem {
             };
         });
         this._debrisSlots = Array.from({ length: DEBRIS_POOL_SIZE }, () => {
-            const sprite = scene.add.sprite(0, 0, 'debris');
+            const sprite = scene.add.sprite(0, 0, TEXTURE_DEBRIS);
             sprite.setVisible(false);
             layer.add(sprite);
             return {

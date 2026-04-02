@@ -77,4 +77,28 @@ export const TILE_DATA: TileDefinition[] = [
         id: 35,
         drawingFunction: 'darker-astro-rock',
     },
+    {
+        id: 40,
+        drawingFunction: 'eroded-surface',
+    },
+    {
+        id: 41,
+        drawingFunction: 'eroded-surface',
+    },
+    {
+        id: 42,
+        drawingFunction: 'eroded-surface',
+    },
+    {
+        id: 43,
+        drawingFunction: 'eroded-surface',
+    },
+    {
+        id: 44,
+        drawingFunction: 'eroded-surface',
+    },
+    {
+        id: 45,
+        drawingFunction: 'eroded-surface',
+    },
 ];

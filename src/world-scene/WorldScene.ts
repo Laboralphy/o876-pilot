@@ -14,9 +14,6 @@ import { createRNGFromString } from '../libs/mulberry32';
 import { createTileRenderer } from '../tile-renderer';
 import { createWorldGenerator } from '../world-generator';
 import { ITextureSource } from '../tile-renderer/ITextureSource';
-import { createBulletTexture } from '../sprite-renderer/bullet-texture';
-import { createExhaustTexture } from '../sprite-renderer/exhaust-texture';
-import { createDebrisTexture } from '../sprite-renderer/debris-texture';
 
 export type { CoordinateList, TileMapLayerDefinition };
 
@@ -64,7 +61,7 @@ class AnimationRegistry {
 export abstract class WorldScene extends Phaser.Scene implements IPhysicsReader {
     protected readonly tilemaps = new Map<string, Phaser.Tilemaps.Tilemap>();
     protected readonly layers = new Map<string, AnyLayer>();
-    protected readonly animations = new Map<string, Map<string, AnimationRegistry>>();
+    protected readonly tileAnimations = new Map<string, Map<string, AnimationRegistry>>();
     protected layerDefinitions: TileMapLayerDefinition[] = [];
     protected _physicLayer: TileMapLayerDefinition | undefined;
     protected worldWidth: number = 0; // in pixels
@@ -97,10 +94,10 @@ export abstract class WorldScene extends Phaser.Scene implements IPhysicsReader 
     }
 
     private _declareAnimationRunner(idLayer: string, animationDefinition: AnimationDefinition) {
-        if (!this.animations.has(idLayer)) {
-            this.animations.set(idLayer, new Map<string, AnimationRegistry>());
+        if (!this.tileAnimations.has(idLayer)) {
+            this.tileAnimations.set(idLayer, new Map<string, AnimationRegistry>());
         }
-        this.animations
+        this.tileAnimations
             .get(idLayer)!
             .set(
                 animationDefinition.key,
@@ -109,7 +106,7 @@ export abstract class WorldScene extends Phaser.Scene implements IPhysicsReader 
     }
 
     private _setAnimatedTile(idLayer: string, x: number, y: number, animationKey: string) {
-        const l = this.animations.get(idLayer);
+        const l = this.tileAnimations.get(idLayer);
         if (!l) {
             throw new Error(`Layer ${idLayer} has no declared animations`);
         }
@@ -124,7 +121,7 @@ export abstract class WorldScene extends Phaser.Scene implements IPhysicsReader 
     }
 
     private _animateTiles(delta: number) {
-        for (const [idLayer, animationRegistries] of this.animations.entries()) {
+        for (const [idLayer, animationRegistries] of this.tileAnimations.entries()) {
             const layer = this.layers.get(idLayer);
             if (layer && layer instanceof Phaser.Tilemaps.TilemapLayer) {
                 for (const animationRegistry of animationRegistries.values()) {
@@ -414,11 +411,6 @@ export abstract class WorldScene extends Phaser.Scene implements IPhysicsReader 
 
     create() {
         this._buildLevel(this.options.level, this.options.level.key);
-        // Bullet spritesheet: 4 frames × 8×8 px, generated at runtime via canvas
-        // (same pattern as tile textures — no external PNG required).
-        this.textures.addCanvas('bullet', createBulletTexture());
-        this.textures.addCanvas('exhaust', createExhaustTexture());
-        this.textures.addCanvas('debris', createDebrisTexture());
         this._createResources();
         this._setupCamera();
         this._setupInput();
@@ -437,6 +429,12 @@ export abstract class WorldScene extends Phaser.Scene implements IPhysicsReader 
             frameWidth: 48,
             frameHeight: 48,
         });
+        this.load.spritesheet('bullet', 'assets/sprites/bullet.png', {
+            frameWidth: 16,
+            frameHeight: 16,
+        });
+        this.load.image('exhaust', 'assets/sprites/exhaust.png');
+        this.load.image('debris', 'assets/sprites/debris.png');
     }
 
     private _getControlState(): IControlState {

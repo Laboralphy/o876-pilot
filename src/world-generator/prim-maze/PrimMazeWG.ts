@@ -8,7 +8,7 @@ import { line } from '../../libs/bresenham';
 // ─── Cell values ─────────────────────────────────────────────────────────────
 
 export const PRIM_CELL_FLOOR = 0;
-export const PRIM_CELL_WALL = 1;
+export const PRIM_CELL_WALL_DEPTH_0 = 1;
 export const PRIM_CELL_WALL_DEPTH_1 = 2;
 export const PRIM_CELL_WALL_DEPTH_2 = 3;
 
@@ -29,7 +29,9 @@ function centrality(rx: number, ry: number, labW: number, labH: number): number 
     const cx = (labW - 1) / 2;
     const cy = (labH - 1) / 2;
     const maxDist = Math.hypot(cx, cy);
-    if (maxDist === 0) return 1;
+    if (maxDist === 0) {
+        return 1;
+    }
     return 1 - Math.hypot(rx - cx, ry - cy) / maxDist;
 }
 
@@ -98,7 +100,7 @@ export class PrimMazeWG extends WordGenerator {
         this._choosePassageMetrics(this.maze);
 
         // 4. Paint everything solid, then stamp each room
-        this.walkCells(() => PRIM_CELL_WALL);
+        this.walkCells(() => PRIM_CELL_WALL_DEPTH_0);
         this._renderEachRoom();
 
         // 5. Walls fully surrounded by walls → depth-1 wall
@@ -117,7 +119,7 @@ export class PrimMazeWG extends WordGenerator {
     private _markDepthWalls(): void {
         // Pass 1: WALL cells with no floor neighbour → DEPTH_1
         this.walkCells((x, y, value) => {
-            if (value !== PRIM_CELL_WALL) {
+            if (value !== PRIM_CELL_WALL_DEPTH_0) {
                 return value;
             }
             for (let dy = -1; dy <= 1; dy++) {
@@ -145,7 +147,7 @@ export class PrimMazeWG extends WordGenerator {
                         continue;
                     }
                     const v = this.getCellValue(x + dx, y + dy);
-                    if (v === PRIM_CELL_WALL) {
+                    if (v === PRIM_CELL_WALL_DEPTH_0) {
                         return value;
                     }
                 }
@@ -166,8 +168,12 @@ export class PrimMazeWG extends WordGenerator {
             ];
 
             for (const { dir, nx, ny } of wallCandidates) {
-                if (nx >= labW || ny >= labH) continue;
-                if (room.hasPassage(dir)) continue;
+                if (nx >= labW || ny >= labH) {
+                    continue;
+                }
+                if (room.hasPassage(dir)) {
+                    continue;
+                }
 
                 const c = (centrality(rx, ry, labW, labH) + centrality(nx, ny, labW, labH)) / 2;
                 if (this.rng.nextBool(c * c)) {
@@ -236,7 +242,7 @@ export class PrimMazeWG extends WordGenerator {
             const oy = 1 + ry * rh;
 
             const grid = new NumberGrid(rw, rh);
-            grid.walkCells(() => PRIM_CELL_WALL);
+            grid.walkCells(() => PRIM_CELL_WALL_DEPTH_0);
 
             // ── Collect passage target cells (local coords) ───────────────────
 

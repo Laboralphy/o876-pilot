@@ -6,6 +6,7 @@ import { ISeededRNG } from '../../../libs/mulberry32/ISeededRNG';
 import { ITextureSource } from '../../ITextureSource';
 import { drawGrayRock } from './drawing-functions/gray-rock';
 import { drawDarkerAstroRock } from './drawing-functions/darker-astro-rock';
+import { drawErodedSurface } from './drawing-functions/eroded-surface';
 
 export class AstroRockTileRenderer extends TileRenderer<TileDefinition> {
     constructor(tileSize: number, rng: ISeededRNG, textureSource: ITextureSource) {
@@ -16,5 +17,6 @@ export class AstroRockTileRenderer extends TileRenderer<TileDefinition> {
         this.declareDrawingFunction('astro-rock', drawAstroRock);
         this.declareDrawingFunction('gray-rock', drawGrayRock);
         this.declareDrawingFunction('darker-astro-rock', drawDarkerAstroRock);
+        this.declareDrawingFunction('eroded-surface', drawErodedSurface);
     }
 }

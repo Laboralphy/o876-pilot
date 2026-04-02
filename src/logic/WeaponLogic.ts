@@ -1,6 +1,6 @@
 import { IControlState } from '../world-scene/IControlState';
 
-type FireState = 'idle' | 'bursting' | 'locked' | 'antispam';
+type FireState = 'idle' | 'bursting' | 'antispam';
 
 /**
  * Abstract base for all weapon types.
@@ -13,7 +13,7 @@ type FireState = 'idle' | 'bursting' | 'locked' | 'antispam';
  * logic lives here and is never duplicated.
  *
  * State transitions:
- *   idle → [fire pressed] → bursting → [burst expires] → locked → [fire released] → antispam → [timer] → idle
+ *   idle → [fire pressed] → bursting → [burst expires] → antispam → [timer] → idle → [fire still held] → bursting → …
  */
 export abstract class WeaponLogic {
     /** True for exactly one frame when a shot should be spawned. */
@@ -74,17 +74,11 @@ export abstract class WeaponLogic {
                 }
                 this._burstTimer--;
                 if (this._burstTimer <= 0) {
-                    this._fireState = 'locked';
-                }
-                break;
-            }
-
-            case 'locked':
-                if (!control.fire) {
                     this._fireState = 'antispam';
                     this._antiSpamTimer = this.antiSpam;
                 }
                 break;
+            }
 
             case 'antispam':
                 this._antiSpamTimer--;

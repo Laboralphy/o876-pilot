@@ -1,5 +1,4 @@
 import { SpriteStore } from '../world-scene/SpriteStore';
-import { IControlState } from '../world-scene/IControlState';
 import { IPhysicsReader } from '../world-scene/IPhysicsReader';
 
 /** Pixels per frame — outruns the ship's MAX_SPEED of 16 px/frame. */
@@ -26,8 +25,8 @@ const ANIM_FRAMES = 4;
  */
 export class BulletSpriteStore extends SpriteStore {
     active: boolean = false;
-    xspeed: number = 0;
-    yspeed: number = 0;
+    xSpeed: number = 0;
+    ySpeed: number = 0;
     remainingLife: number = 0;
     private _animTick: number = 0;
 
@@ -41,8 +40,8 @@ export class BulletSpriteStore extends SpriteStore {
         this.x = x;
         this.y = y;
         this.angle = angle;
-        this.xspeed = Math.sin(rad) * BULLET_SPEED;
-        this.yspeed = -Math.cos(rad) * BULLET_SPEED;
+        this.xSpeed = Math.sin(rad) * BULLET_SPEED;
+        this.ySpeed = -Math.cos(rad) * BULLET_SPEED;
         this.active = true;
         this.alpha = 1;
         this.frame = 0;
@@ -53,8 +52,8 @@ export class BulletSpriteStore extends SpriteStore {
     deactivate(): void {
         this.active = false;
         this.alpha = 0;
-        this.xspeed = 0;
-        this.yspeed = 0;
+        this.xSpeed = 0;
+        this.ySpeed = 0;
     }
 
     /**
@@ -76,14 +75,14 @@ export class BulletSpriteStore extends SpriteStore {
             this.frame = (this.frame + 1) % 4;
         }
 
-        const nextX = this.x + this.xspeed;
-        const nextY = this.y + this.yspeed;
+        const nextX = this.x + this.xSpeed;
+        const nextY = this.y + this.ySpeed;
 
         // Probe the leading edge in both axes to detect solid collision
         if (
             physics.isSolid(nextX, nextY) ||
-            physics.isSolid(nextX + Math.sign(this.xspeed) * BULLET_RADIUS, nextY) ||
-            physics.isSolid(nextX, nextY + Math.sign(this.yspeed) * BULLET_RADIUS)
+            physics.isSolid(nextX + Math.sign(this.xSpeed) * BULLET_RADIUS, nextY) ||
+            physics.isSolid(nextX, nextY + Math.sign(this.ySpeed) * BULLET_RADIUS)
         ) {
             return true; // impact
         }
@@ -94,5 +93,7 @@ export class BulletSpriteStore extends SpriteStore {
     }
 
     /** Required by abstract base — not called (controllable = false). */
-    update(_control: IControlState, _physics: IPhysicsReader): void {}
+    update(): void {
+        // does nothing : sprite is not controllable
+    }
 }
