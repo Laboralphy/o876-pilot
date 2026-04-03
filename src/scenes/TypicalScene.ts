@@ -58,12 +58,10 @@ export class TypicalScene extends WorldScene {
                         runStart = colX;
                     }
                     runLength += tileSize;
-                } else {
-                    if (runStart !== null) {
-                        this._platformRegistry.push({ x: runStart, y: rowY, width: runLength });
-                        runStart = null;
-                        runLength = 0;
-                    }
+                } else if (runStart !== null) {
+                    this._platformRegistry.push({ x: runStart, y: rowY, width: runLength });
+                    runStart = null;
+                    runLength = 0;
                 }
             }
 
@@ -108,6 +106,13 @@ export class TypicalScene extends WorldScene {
         // render behind ships and bullets.
         const particleLayer = this.layers.get('particles')! as Phaser.GameObjects.Layer;
         this._exhaustSystem = new ParticleSystem(this, particleLayer);
+
+        ship.on('thrust', ({ x, y, angle }) => {
+            this._exhaustSystem?.emitExhaust(x, y, angle);
+        });
+        ship.on('collision', ({ x, y, strength }) => {
+            this._exhaustSystem?.emitDebris(x, y, strength);
+        });
     }
 
     preload() {
@@ -134,14 +139,6 @@ export class TypicalScene extends WorldScene {
         }
 
         this._bulletPool?.update(this);
-
-        // ship.frame === 1 means thrust is active (set by ShipSpriteStore.update)
-        if (ship && ship.frame === 1) {
-            this._exhaustSystem?.emitExhaust(ship.x, ship.y, ship.angle);
-        }
-        if (ship && ship.collisionStrength > 0) {
-            this._exhaustSystem?.emitDebris(ship.x, ship.y, ship.collisionStrength);
-        }
         this._exhaustSystem?.update();
     }
 }

@@ -3,8 +3,7 @@ import { ISeededRNG } from '../libs/mulberry32/ISeededRNG';
 import { ITileRenderer } from '../tile-renderer/ITileRenderer';
 import { IWorldGenerator } from '../world-generator/IWorldGenerator';
 import { PhysicsCell } from './physics-types';
-
-export type CoordinateList = { x: number; y: number }[];
+import { CoordinateList } from '../types/CoordinateList';
 
 /**
  * This type of layer is dedicated to tilemaps

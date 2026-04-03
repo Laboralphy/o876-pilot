@@ -4,13 +4,18 @@ import { Direction, PrimLabyrinth } from '../../libs/prim';
 import { IDaedalus } from '../../libs/daedalus';
 import { NumberGrid } from '../../libs/grid/NumberGrid';
 import { line } from '../../libs/bresenham';
+import { PatternMapRefiner } from '../../libs/pattern-map-refiner/PatternMapRefiner';
 
 // ─── Cell values ─────────────────────────────────────────────────────────────
 
 export const PRIM_CELL_FLOOR = 0;
-export const PRIM_CELL_WALL_DEPTH_0 = 1;
-export const PRIM_CELL_WALL_DEPTH_1 = 2;
-export const PRIM_CELL_WALL_DEPTH_2 = 3;
+export const PRIM_CELL_SOLID_DEPTH_0 = 1;
+export const PRIM_CELL_SOLID_DEPTH_1 = 2;
+export const PRIM_CELL_SOLID_DEPTH_2 = 3;
+export const PRIM_CELL_FLAT_GROUND = 4;
+export const PRIM_CELL_FLAT_GROUND_ROUNDED_LEFT = 5;
+export const PRIM_CELL_FLAT_GROUND_ROUNDED_RIGHT = 6;
+export const PRIM_CELL_FLAT_GROUND_ROUNDED_BOTH = 7;
 
 // ─── Room passage attribute keys ─────────────────────────────────────────────
 // Stored on the room that owns the passage (E or S direction).
@@ -100,11 +105,14 @@ export class PrimMazeWG extends WordGenerator {
         this._choosePassageMetrics(this.maze);
 
         // 4. Paint everything solid, then stamp each room
-        this.walkCells(() => PRIM_CELL_WALL_DEPTH_0);
+        this.walkCells(() => PRIM_CELL_SOLID_DEPTH_0);
         this._renderEachRoom();
 
         // 5. Walls fully surrounded by walls → depth-1 wall
         this._markDepthWalls();
+
+        // 6. Refine the map
+        this._refineMap();
 
         return this.cellMap;
     }
@@ -119,7 +127,7 @@ export class PrimMazeWG extends WordGenerator {
     private _markDepthWalls(): void {
         // Pass 1: WALL cells with no floor neighbour → DEPTH_1
         this.walkCells((x, y, value) => {
-            if (value !== PRIM_CELL_WALL_DEPTH_0) {
+            if (value !== PRIM_CELL_SOLID_DEPTH_0) {
                 return value;
             }
             for (let dy = -1; dy <= 1; dy++) {
@@ -133,12 +141,12 @@ export class PrimMazeWG extends WordGenerator {
                     }
                 }
             }
-            return PRIM_CELL_WALL_DEPTH_1;
+            return PRIM_CELL_SOLID_DEPTH_1;
         });
 
         // Pass 2: DEPTH_1 cells with no plain WALL neighbour → DEPTH_2
         this.walkCells((x, y, value) => {
-            if (value !== PRIM_CELL_WALL_DEPTH_1) {
+            if (value !== PRIM_CELL_SOLID_DEPTH_1) {
                 return value;
             }
             for (let dy = -1; dy <= 1; dy++) {
@@ -147,12 +155,12 @@ export class PrimMazeWG extends WordGenerator {
                         continue;
                     }
                     const v = this.getCellValue(x + dx, y + dy);
-                    if (v === PRIM_CELL_WALL_DEPTH_0) {
+                    if (v === PRIM_CELL_SOLID_DEPTH_0) {
                         return value;
                     }
                 }
             }
-            return PRIM_CELL_WALL_DEPTH_2;
+            return PRIM_CELL_SOLID_DEPTH_2;
         });
     }
 
@@ -242,7 +250,7 @@ export class PrimMazeWG extends WordGenerator {
             const oy = 1 + ry * rh;
 
             const grid = new NumberGrid(rw, rh);
-            grid.walkCells(() => PRIM_CELL_WALL_DEPTH_0);
+            grid.walkCells(() => PRIM_CELL_SOLID_DEPTH_0);
 
             // ── Collect passage target cells (local coords) ───────────────────
 
@@ -313,5 +321,48 @@ export class PrimMazeWG extends WordGenerator {
             // ── Stamp into the main cell map ──────────────────────────────────
             this.copyArea(grid, 0, 0, rw, rh, ox, oy);
         });
+    }
+
+    private _refineMap(): void {
+        const pmr = new PatternMapRefiner(
+            {
+                '.': [PRIM_CELL_FLOOR],
+                '#': [PRIM_CELL_SOLID_DEPTH_0, PRIM_CELL_SOLID_DEPTH_1, PRIM_CELL_SOLID_DEPTH_2],
+                _: [PRIM_CELL_FLAT_GROUND],
+                L: [PRIM_CELL_FLAT_GROUND_ROUNDED_LEFT],
+                R: [PRIM_CELL_FLAT_GROUND_ROUNDED_RIGHT],
+                B: [PRIM_CELL_FLAT_GROUND_ROUNDED_BOTH],
+            },
+            this
+        );
+        pmr.replaceAllPatterns(
+            new Map([
+                // peaks
+                [
+                    ['...', '.#.'],
+                    ['...', '.B.'],
+                ],
+                // 2-block platforms
+                [
+                    ['....', '.##.'],
+                    ['....', '.LR.'],
+                ],
+                // left corners
+                [
+                    ['..?', '.##'],
+                    ['..?', '.L?'],
+                ],
+                // right corners
+                [
+                    ['?..', '##.'],
+                    ['?..', '?R.'],
+                ],
+                // flat ground
+                [
+                    ['.', '#'],
+                    ['.', '_'],
+                ],
+            ])
+        );
     }
 }

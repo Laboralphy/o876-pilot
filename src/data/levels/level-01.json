@@ -47,6 +47,34 @@
                     "animations": [],
                     "attributes": { "solid": 1, "transparent": 0 },
                     "tags": ["rock"]
+                },
+                {
+                    "cell": 4,
+                    "tiles": [40, 41, 42, 43, 44, 45],
+                    "animations": [],
+                    "attributes": { "solid": 1, "transparent": 0 },
+                    "tags": ["rock"]
+                },
+                {
+                    "cell": 5,
+                    "tiles": [46],
+                    "animations": [],
+                    "attributes": { "solid": 1, "transparent": 0 },
+                    "tags": ["rock"]
+                },
+                {
+                    "cell": 6,
+                    "tiles": [47],
+                    "animations": [],
+                    "attributes": { "solid": 1, "transparent": 0 },
+                    "tags": ["rock"]
+                },
+                {
+                    "cell": 7,
+                    "tiles": [48],
+                    "animations": [],
+                    "attributes": { "solid": 1, "transparent": 0 },
+                    "tags": ["rock"]
                 }
             ]
         },

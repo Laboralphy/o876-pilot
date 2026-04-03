@@ -101,4 +101,16 @@ export const TILE_DATA: TileDefinition[] = [
         id: 45,
         drawingFunction: 'eroded-surface',
     },
+    {
+        id: 46,
+        drawingFunction: 'eroded-surface-round-left',
+    },
+    {
+        id: 47,
+        drawingFunction: 'eroded-surface-round-right',
+    },
+    {
+        id: 48,
+        drawingFunction: 'eroded-surface-round-both',
+    },
 ];

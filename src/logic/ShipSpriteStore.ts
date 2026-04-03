@@ -1,8 +1,15 @@
-import { SpriteStore } from '../world-scene/SpriteStore';
+import { SpriteStore, HordeEmitter } from '../world-scene/SpriteStore';
 import { IControlState } from '../world-scene/IControlState';
 import { IPhysicsReader } from '../world-scene/IPhysicsReader';
 import { WeaponLogic } from './WeaponLogic';
 import { MultiCannonLogic } from './MultiCannonLogic';
+
+export type ShipSpriteEvents = {
+    /** Fired every frame the thruster is active. */
+    thrust: { x: number; y: number; angle: number };
+    /** Fired once when a wall collision occurs above the minimum speed threshold. */
+    collision: { x: number; y: number; strength: number };
+};
 
 const ROTATE_SPEED = 3; // degrees per frame
 const THRUST_ACC = 0.3; // px/frame² — terminal velocity ~15px/frame
@@ -12,13 +19,22 @@ const BOUNCE = -0.4; // bounce factor (reverses + dampens to 40%)
 const SHIP_RADIUS = 14; // collision probe radius in pixels
 const GRAVITY_FALL = 0.1;
 
-export class ShipSpriteStore extends SpriteStore {
+export class ShipSpriteStore extends SpriteStore<ShipSpriteEvents> {
     xSpeed: number = 0;
     ySpeed: number = 0;
-    /** Speed at the moment of the last wall collision this frame (px/frame). 0 if no collision. */
-    collisionStrength: number = 0;
 
     readonly _weapon: WeaponLogic = new MultiCannonLogic();
+
+    wireHorde(emit: HordeEmitter): () => void {
+        const onThrust = (p: ShipSpriteEvents['thrust']) => emit('thrust', this, p);
+        const onCollision = (p: ShipSpriteEvents['collision']) => emit('collision', this, p);
+        this.on('thrust', onThrust);
+        this.on('collision', onCollision);
+        return () => {
+            this.off('thrust', onThrust);
+            this.off('collision', onCollision);
+        };
+    }
 
     constructor(id: string) {
         super(id, 'spaceship');
@@ -36,8 +52,6 @@ export class ShipSpriteStore extends SpriteStore {
     }
 
     update(control: IControlState, physics: IPhysicsReader): void {
-        this.collisionStrength = 0;
-
         // Rotation
         if (control.rotateCW) {
             this.angle += ROTATE_SPEED;
@@ -69,10 +83,11 @@ export class ShipSpriteStore extends SpriteStore {
         // Move X with collision
         const nextX = this.x + this.xSpeed;
         if (this.xSpeed !== 0 && this._hitsX(nextX, physics)) {
-            this.collisionStrength = Math.max(
-                this.collisionStrength,
-                Math.hypot(this.xSpeed, this.ySpeed)
-            );
+            this.emit('collision', {
+                x: this.x,
+                y: this.y,
+                strength: Math.hypot(this.xSpeed, this.ySpeed),
+            });
             this.xSpeed *= BOUNCE;
         } else {
             this.x = nextX;
@@ -81,10 +96,11 @@ export class ShipSpriteStore extends SpriteStore {
         // Move Y with collision
         const nextY = this.y + this.ySpeed;
         if (this.ySpeed !== 0 && this._hitsY(nextY, physics)) {
-            this.collisionStrength = Math.max(
-                this.collisionStrength,
-                Math.hypot(this.xSpeed, this.ySpeed)
-            );
+            this.emit('collision', {
+                x: this.x,
+                y: this.y,
+                strength: Math.hypot(this.xSpeed, this.ySpeed),
+            });
             this.ySpeed *= BOUNCE;
         } else {
             this.y = nextY;
@@ -94,5 +110,8 @@ export class ShipSpriteStore extends SpriteStore {
 
         // Frame
         this.frame = control.thrust ? 1 : 0;
+        if (control.thrust) {
+            this.emit('thrust', { x: this.x, y: this.y, angle: this.angle });
+        }
     }
 }

@@ -1,7 +1,7 @@
 import { createRNG } from '../../libs/mulberry32';
 import { PrimMazeWG } from './PrimMazeWG';
 
-export { PrimMazeWG, PRIM_CELL_FLOOR, PRIM_CELL_WALL_DEPTH_0 } from './PrimMazeWG';
+export { PrimMazeWG, PRIM_CELL_FLOOR, PRIM_CELL_SOLID_DEPTH_0 } from './PrimMazeWG';
 
 function render() {
     const wg = new PrimMazeWG(createRNG(655259), 150, 100);

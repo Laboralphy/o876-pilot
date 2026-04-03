@@ -1,11 +1,6 @@
 import Phaser from 'phaser';
 import { AnimationDefinition, AnimationRunner } from './AnimationRunner';
-import {
-    buildLayerDefinition,
-    CoordinateList,
-    TileMapLayerDefinition,
-    WorldBlock,
-} from './layer-builder';
+import { buildLayerDefinition, TileMapLayerDefinition, WorldBlock } from './layer-builder';
 import { PhysicsCell } from './physics-types';
 import { IPhysicsReader } from './IPhysicsReader';
 import { IControlState } from './IControlState';
@@ -14,8 +9,9 @@ import { createRNGFromString } from '../libs/mulberry32';
 import { createTileRenderer } from '../tile-renderer';
 import { createWorldGenerator } from '../world-generator';
 import { ITextureSource } from '../tile-renderer/ITextureSource';
+import { CoordinateList } from '../types/CoordinateList';
 
-export type { CoordinateList, TileMapLayerDefinition };
+export type { TileMapLayerDefinition };
 
 type AnyLayer =
     | Phaser.GameObjects.Layer
