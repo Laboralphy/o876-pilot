@@ -1,6 +1,8 @@
 import Phaser from 'phaser';
+import { Rainbow } from '../libs/rainbow/Rainbow';
+import type { Color32 } from '../libs/rainbow/Rainbow';
 
-// ─── Debris constants ────────────────────────────────────────────────────────
+// ─── Impacts constants ────────────────────────────────────────────────────────
 
 /** Minimum collision strength below which no debris is spawned. */
 const DEBRIS_MIN_STRENGTH = 2;
@@ -15,13 +17,31 @@ const DEBRIS_SPEED_SCALE = 0.2;
 /** Random ± variance added to each debris particle's speed. */
 const DEBRIS_SPEED_VARIANCE = 0.75;
 /** Minimum debris lifetime in frames. */
-const DEBRIS_MIN_LIFE = 25;
+const DEBRIS_MIN_LIFE = 50;
 /** Maximum debris lifetime in frames. */
-const DEBRIS_MAX_LIFE = 50;
+const DEBRIS_MAX_LIFE = 100;
 
 const DEBRIS_POOL_SIZE = 100;
 
-const TEXTURE_DEBRIS = 'debris';
+const DEBRIS_TEXTURE = 'debris';
+
+/**
+ * Palette for cooling fusion-metal debris.
+ * t=0 (dying) → dark ember; t=1 (fresh) → blue-white plasma.
+ * Stops run coolest→hottest across 64 entries.
+ *
+ */
+export const DEBRIS_COOLING_PALETTE = [
+    Rainbow.parse('rgb(255, 255, 0)'),
+    Rainbow.parse('rgb(255, 0, 0)'),
+    Rainbow.parse('rgb(136, 136, 136)'),
+];
+
+export const EXHAUST_COOLING_PALETTE = [
+    Rainbow.parse('rgb(255, 255, 255)'),
+    Rainbow.parse('rgb(0, 150, 255)'),
+    Rainbow.parse('rgb(136, 136, 136)'),
+];
 
 // ─── Exhaust constants ───────────────────────────────────────────────────────
 
@@ -42,7 +62,7 @@ const EXHAUST_MAX_LIFE = 30;
 
 const EXHAUST_POOL_SIZE = 200;
 
-const TEXTURE_EXHAUST = 'exhaust';
+const EXHAUST_TEXTURE = 'exhaust';
 
 type Particle = {
     active: boolean;
@@ -54,29 +74,26 @@ type Particle = {
     maxLife: number;
 };
 
+enum PARTICLE_TYPES {
+    EXHAUST,
+    DEBRIS,
+    IMPACT,
+}
+
 type ParticleSlot = {
+    t: PARTICLE_TYPES;
     p: Particle;
     sprite: Phaser.GameObjects.Sprite;
+    palette?: Color32[];
 };
 
 /**
- * Returns a Phaser-compatible tint colour for a debris particle.
- * t=1 (fresh) → bright yellow; t=0.5 → red; t=0 (dying) → gray.
- * The texture is pure white so the tint multiplies directly onto it.
+ * Sample a palette at normalised age t (1 = fresh, 0 = dying) and return a
+ * Phaser-compatible 24-bit tint (0xRRGGBB). Alpha from the Color32 is discarded.
  */
-function _debrisTint(t: number): number {
-    if (t > 0.5) {
-        // yellow (255,255,0) → red (255,0,0)
-        const u = (t - 0.5) * 2; // 1 → 0
-        const g = Math.round(255 * u);
-        return (0xff << 16) | (g << 8);
-    } else {
-        // red (255,0,0) → gray (136,136,136)
-        const u = t * 2; // 1 → 0
-        const r = Math.round(136 + 119 * u); // 255 → 136
-        const gb = Math.round(136 * (1 - u)); // 0 → 136
-        return (r << 16) | (gb << 8) | gb;
-    }
+function _particleTint(palette: Color32[], t: number): number {
+    const color = Rainbow.multiLerpColor(palette, 1 - t);
+    return (color >>> 8) & 0xffffff;
 }
 
 /**
@@ -97,20 +114,35 @@ export class ParticleSystem {
     private readonly _debrisSlots: ParticleSlot[];
 
     constructor(scene: Phaser.Scene, layer: Phaser.GameObjects.Layer) {
-        this._exhaustSlots = Array.from({ length: EXHAUST_POOL_SIZE }, () => {
-            const sprite = scene.add.sprite(0, 0, TEXTURE_EXHAUST);
+        this._exhaustSlots = this._createPool(
+            scene,
+            layer,
+            EXHAUST_POOL_SIZE,
+            EXHAUST_TEXTURE,
+            PARTICLE_TYPES.EXHAUST
+        );
+        this._debrisSlots = this._createPool(
+            scene,
+            layer,
+            DEBRIS_POOL_SIZE,
+            DEBRIS_TEXTURE,
+            PARTICLE_TYPES.DEBRIS
+        );
+    }
+
+    private _createPool(
+        scene: Phaser.Scene,
+        layer: Phaser.GameObjects.Layer,
+        size: number,
+        texture: string,
+        particleType: PARTICLE_TYPES
+    ) {
+        return Array.from({ length: size }, () => {
+            const sprite = scene.add.sprite(0, 0, texture);
             sprite.setVisible(false);
             layer.add(sprite);
             return {
-                p: { active: false, x: 0, y: 0, vx: 0, vy: 0, life: 0, maxLife: 1 },
-                sprite,
-            };
-        });
-        this._debrisSlots = Array.from({ length: DEBRIS_POOL_SIZE }, () => {
-            const sprite = scene.add.sprite(0, 0, TEXTURE_DEBRIS);
-            sprite.setVisible(false);
-            layer.add(sprite);
-            return {
+                t: particleType,
                 p: { active: false, x: 0, y: 0, vx: 0, vy: 0, life: 0, maxLife: 1 },
                 sprite,
             };
@@ -153,6 +185,7 @@ export class ParticleSystem {
             slot.p.vy = Math.sin(angle) * s;
             slot.p.life = life;
             slot.p.maxLife = life;
+            slot.palette = DEBRIS_COOLING_PALETTE;
             slot.sprite.setVisible(true);
             spawned++;
         }
@@ -195,9 +228,59 @@ export class ParticleSystem {
             slot.p.vx = Math.sin(spreadRad) * speed;
             slot.p.vy = -Math.cos(spreadRad) * speed;
             slot.p.life = life;
+            slot.palette = EXHAUST_COOLING_PALETTE;
             slot.p.maxLife = life;
             slot.sprite.setVisible(true);
             spawned++;
+        }
+    }
+
+    /**
+     * Returns the inverted age of particle 1 → 0
+     * @param ps
+     * @private
+     */
+    private _depleteParticleLife(ps: ParticleSlot): number {
+        const { p, sprite } = ps;
+        p.life--;
+        if (p.life <= 0) {
+            p.active = false;
+            sprite.setVisible(false);
+            return 0;
+        } else {
+            p.x += p.vx;
+            p.y += p.vy;
+
+            const t = p.life / p.maxLife; // 1 → 0 as particle ages
+            sprite.x = Math.round(p.x);
+            sprite.y = Math.round(p.y);
+            return t;
+        }
+    }
+
+    private _updateExhaust(ps: ParticleSlot) {
+        const t = this._depleteParticleLife(ps);
+        if (t == 0) {
+            return;
+        }
+        const { sprite, palette } = ps;
+
+        sprite.setScale(0.4 + t * 0.6); // shrinks from 1.0 → 0.4
+        if (palette !== undefined) {
+            sprite.setTint(_particleTint(palette, t));
+        }
+    }
+
+    private _updateDebris(ps: ParticleSlot) {
+        const t = this._depleteParticleLife(ps);
+        if (t == 0) {
+            return;
+        }
+        const { sprite, palette } = ps;
+        sprite.alpha = t * t; // quadratic fade — snappy then quick out
+        sprite.setScale(0.3 + t * 0.5); // shrinks from 0.8 → 0.3
+        if (palette !== undefined) {
+            sprite.setTint(_particleTint(palette, t));
         }
     }
 
@@ -206,49 +289,16 @@ export class ParticleSystem {
      * Call every frame unconditionally.
      */
     update(): void {
-        for (const { p, sprite } of this._exhaustSlots) {
-            if (!p.active) {
-                continue;
+        for (const ps of this._exhaustSlots) {
+            if (ps.p.active) {
+                this._updateExhaust(ps);
             }
-
-            p.life--;
-            if (p.life <= 0) {
-                p.active = false;
-                sprite.setVisible(false);
-                continue;
-            }
-
-            p.x += p.vx;
-            p.y += p.vy;
-
-            const t = p.life / p.maxLife; // 1 → 0 as particle ages
-            sprite.x = Math.round(p.x);
-            sprite.y = Math.round(p.y);
-            sprite.alpha = t;
-            sprite.setScale(0.4 + t * 0.6); // shrinks from 1.0 → 0.4
         }
 
-        for (const { p, sprite } of this._debrisSlots) {
-            if (!p.active) {
-                continue;
+        for (const ps of this._debrisSlots) {
+            if (ps.p.active) {
+                this._updateDebris(ps);
             }
-
-            p.life--;
-            if (p.life <= 0) {
-                p.active = false;
-                sprite.setVisible(false);
-                continue;
-            }
-
-            p.x += p.vx;
-            p.y += p.vy;
-
-            const t = p.life / p.maxLife; // 1 → 0 as particle ages
-            sprite.x = Math.round(p.x);
-            sprite.y = Math.round(p.y);
-            sprite.alpha = t * t; // quadratic fade — snappy then quick out
-            sprite.setScale(0.3 + t * 0.5); // shrinks from 0.8 → 0.3
-            sprite.setTint(_debrisTint(t));
         }
     }
 }

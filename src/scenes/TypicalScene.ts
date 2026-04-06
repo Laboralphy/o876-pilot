@@ -16,7 +16,7 @@ export type TypicalPlatform = {
 export class TypicalScene extends WorldScene {
     protected _platformRegistry: TypicalPlatform[] = [];
     private _bulletPool: BulletPool | undefined;
-    private _exhaustSystem: ParticleSystem | undefined;
+    private _particleSystem: ParticleSystem | undefined;
 
     constructor(options: WorldSceneOptions) {
         super(options);
@@ -105,13 +105,13 @@ export class TypicalScene extends WorldScene {
         // Exhaust layer sits just below the sprite layer so particles always
         // render behind ships and bullets.
         const particleLayer = this.layers.get('particles')! as Phaser.GameObjects.Layer;
-        this._exhaustSystem = new ParticleSystem(this, particleLayer);
+        this._particleSystem = new ParticleSystem(this, particleLayer);
 
         ship.on('thrust', ({ x, y, angle }) => {
-            this._exhaustSystem?.emitExhaust(x, y, angle);
+            this._particleSystem?.emitExhaust(x, y, angle);
         });
         ship.on('collision', ({ x, y, strength }) => {
-            this._exhaustSystem?.emitDebris(x, y, strength);
+            this._particleSystem?.emitDebris(x, y, strength);
         });
     }
 
@@ -139,6 +139,6 @@ export class TypicalScene extends WorldScene {
         }
 
         this._bulletPool?.update(this);
-        this._exhaustSystem?.update();
+        this._particleSystem?.update();
     }
 }

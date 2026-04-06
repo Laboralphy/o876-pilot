@@ -108,6 +108,13 @@ export class ShipSpriteStore extends SpriteStore<ShipSpriteEvents> {
 
         this._weapon.update(control, this.x, this.y, this.angle);
 
+        if (Math.abs(this.xSpeed) < 0.01) {
+            this.xSpeed = 0;
+        }
+        if (Math.abs(this.ySpeed) < 0.01) {
+            this.ySpeed = 0;
+        }
+
         // Frame
         this.frame = control.thrust ? 1 : 0;
         if (control.thrust) {

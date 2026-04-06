@@ -6,7 +6,6 @@ export { PrimMazeWG, PRIM_CELL_FLOOR, PRIM_CELL_SOLID_DEPTH_0 } from './PrimMaze
 function render() {
     const wg = new PrimMazeWG(createRNG(655259), 150, 100);
     const r: number[][] = wg.generate();
-    r.forEach((row) => console.log(row.map((cell) => (cell ? 'X' : ' ')).join('')));
 }
 
 render();

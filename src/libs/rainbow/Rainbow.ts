@@ -301,10 +301,18 @@ export class Rainbow {
             return n * 16 + n;
         };
 
-        if (h.length === 3) return Rainbow._pack(x1(0), x1(1), x1(2), 255);
-        if (h.length === 4) return Rainbow._pack(x1(0), x1(1), x1(2), x1(3));
-        if (h.length === 6) return Rainbow._pack(x2(0), x2(2), x2(4), 255);
-        if (h.length === 8) return Rainbow._pack(x2(0), x2(2), x2(4), x2(6));
+        if (h.length === 3) {
+            return Rainbow._pack(x1(0), x1(1), x1(2), 255);
+        }
+        if (h.length === 4) {
+            return Rainbow._pack(x1(0), x1(1), x1(2), x1(3));
+        }
+        if (h.length === 6) {
+            return Rainbow._pack(x2(0), x2(2), x2(4), 255);
+        }
+        if (h.length === 8) {
+            return Rainbow._pack(x2(0), x2(2), x2(4), x2(6));
+        }
 
         throw new Error(`Rainbow.parse: invalid hex color "${hex}"`);
     }
@@ -313,7 +321,9 @@ export class Rainbow {
 
     private static _fromRgb(raw: string): Color32 {
         const p = Rainbow._splitArgs(raw);
-        if (p.length < 3) throw new Error(`Rainbow.parse: malformed rgb "${raw}"`);
+        if (p.length < 3) {
+            throw new Error(`Rainbow.parse: malformed rgb "${raw}"`);
+        }
         const r = Rainbow._ch255(p[0]);
         const g = Rainbow._ch255(p[1]);
         const b = Rainbow._ch255(p[2]);
@@ -325,7 +335,9 @@ export class Rainbow {
 
     private static _fromHsl(raw: string): Color32 {
         const p = Rainbow._splitArgs(raw);
-        if (p.length < 3) throw new Error(`Rainbow.parse: malformed hsl "${raw}"`);
+        if (p.length < 3) {
+            throw new Error(`Rainbow.parse: malformed hsl "${raw}"`);
+        }
         const h = Rainbow._parseHue(p[0]);
         const s = Rainbow._ch01(p[1]);
         const l = Rainbow._ch01(p[2]);
@@ -346,11 +358,21 @@ export class Rainbow {
         const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
         const p = 2 * l - q;
         const hue2rgb = (t: number): number => {
-            if (t < 0) t += 1;
-            if (t > 1) t -= 1;
-            if (t < 1 / 6) return p + (q - p) * 6 * t;
-            if (t < 1 / 2) return q;
-            if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
+            if (t < 0) {
+                t += 1;
+            }
+            if (t > 1) {
+                t -= 1;
+            }
+            if (t < 1 / 6) {
+                return p + (q - p) * 6 * t;
+            }
+            if (t < 1 / 2) {
+                return q;
+            }
+            if (t < 2 / 3) {
+                return p + (q - p) * (2 / 3 - t) * 6;
+            }
             return p;
         };
         return [
